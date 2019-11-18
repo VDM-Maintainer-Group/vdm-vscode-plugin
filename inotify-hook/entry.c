@@ -18,13 +18,16 @@ asmlinkage int (*ori_inotify_add_watch) (int, const char __user *, u32);
 asmlinkage int mod_inotify_add_watch(int fd, const char __user *pathname, u32 mask)
 {
     pid_t usr_pid = current->pid;
-    // char tmp_str[128];
+    char realpath[128];
 
     //FIXME: could not read the pathname
-    // if (strncpy_from_user(tmp_str, pathname, 128) != 0)
-    //     return -EFAULT;
+    if (strncpy_from_user(realpath, pathname, 128) != 0)
+    {
+        printh("could could get real pathname.");
+        return -EFAULT;
+    }
     
-    printh("%d add watch on %s\n", usr_pid, pathname);
+    printh("%d add watch on %s\n", usr_pid, realpath);
     return ori_inotify_add_watch(fd, pathname, mask);
 }
 
