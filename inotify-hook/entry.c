@@ -5,22 +5,11 @@
 #include <linux/version.h>
 #include <linux/kallsyms.h>
 #include <asm/tlbflush.h>
-#include <linux/sched.h>
 #include <linux/uaccess.h>
 #include <linux/syscalls.h>
 #include <linux/delay.h>
-#include <linux/kdev_t.h>
-#include <linux/utsname.h>
-#include <linux/hash.h>
-#include <linux/bitops.h>
-#include <linux/mount.h>
-#include <linux/audit.h>
-#include <linux/capability.h>
-#include <linux/file.h>
-#include <linux/slab.h>
-#include <linux/fs.h>
 #include <linux/namei.h>
-#include <linux/pagemap.h>
+#include <linux/audit.h>
 
 #define EMBEDDED_NAME_MAX	(PATH_MAX - offsetof(struct filename, iname))
 
@@ -53,6 +42,7 @@ asmlinkage long mod_inotify_add_watch(int fd, const char __user *pathname, u32 m
     int len;
 
     ret = ori_inotify_add_watch(fd, pathname, mask);
+
     if ( (result=audit_reusename(pathname)) != 0)
     {
         kname = (char *)result->iname;
@@ -60,19 +50,9 @@ asmlinkage long mod_inotify_add_watch(int fd, const char __user *pathname, u32 m
 	if (unlikely(len < 0)) {
             return -ENOMEM;
 	}
+        // printh("%d add watch on %s\n", usr_pid, realpath);
     }
-    else
-    {
-        return -ENOMEM;
-    }
-/*
-    if (strncpy_from_user(realpath, pathname, 128) != 0)
-    {
-        printh("could could get real pathname.\n");
-        return -EFAULT;
-    }
-    printh("%d add watch on %s\n", usr_pid, realpath);
-*/
+
     return ret;
 }
 
