@@ -37,15 +37,15 @@ asmlinkage long mod_inotify_add_watch(int fd, const char __user *pathname, u32 m
     pid_t usr_pid = current->pid;
     char realpath[128];
 
-    //FIXME: could not read the pathname
+    ori_inotify_add_watch(fd, pathname, mask);
     if (strncpy_from_user(realpath, pathname, 128) != 0)
     {
         printh("could could get real pathname.\n");
         return -EFAULT;
     }
-    
     printh("%d add watch on %s\n", usr_pid, realpath);
-    return ori_inotify_add_watch(fd, pathname, mask);
+
+    return 0;
 }
 
 /*************************** INOTIFY_RM_WATCH ***************************/
