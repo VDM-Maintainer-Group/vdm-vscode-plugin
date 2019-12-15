@@ -22,8 +22,8 @@
 
 void **sys_call_table;
 /*************************** STRICT PROTOTYPES ***************************/
-asmlinkage int (*ori_inotify_add_watch) (int, const char __user *, u32);
-asmlinkage int mod_inotify_add_watch(int, const char __user *, u32);
+asmlinkage long (*ori_inotify_add_watch) (int, const char __user *, u32);
+asmlinkage long mod_inotify_add_watch(int, const char __user *, u32);
 unsigned long **find_sys_call_table(void);
 static int __init inotify_hook_init(void);
 static void __exit inotify_hook_fini(void);
@@ -32,8 +32,7 @@ static int (*set_memory_rw)(unsigned long addr, int numpages) = NULL;
 static int (*set_memory_ro)(unsigned long addr, int numpages) = NULL;
 
 /*************************** INOTIFY_ADD_WATCH ***************************/
-asmlinkage int (*ori_inotify_add_watch) (int, const char __user *, u32);
-asmlinkage int mod_inotify_add_watch(int fd, const char __user *pathname, u32 mask)
+asmlinkage long mod_inotify_add_watch(int fd, const char __user *pathname, u32 mask)
 {
     pid_t usr_pid = current->pid;
     char realpath[128];
