@@ -12,6 +12,8 @@
 #include <linux/kdev_t.h>
 #include <linux/utsname.h>
 
+#define EMBEDDED_NAME_MAX	(PATH_MAX - offsetof(struct filename, iname))
+
 #define KERN_LOG KERN_NOTICE "[printk]"
 #define printh(...) printk(KERN_LOG __VA_ARGS__)
 
@@ -34,18 +36,34 @@ static int (*set_memory_ro)(unsigned long addr, int numpages) = NULL;
 /*************************** INOTIFY_ADD_WATCH ***************************/
 asmlinkage long mod_inotify_add_watch(int fd, const char __user *pathname, u32 mask)
 {
+    long ret;
     pid_t usr_pid = current->pid;
-    char realpath[128];
+    struct filename *result;
+    char *name;
+    int len;
 
-    ori_inotify_add_watch(fd, pathname, mask);
+    ret = ori_inotify_add_watch(fd, pathname, mask);
+    if ( (result=audit_reusename(pathname)) != 0)
+    {
+        kname = (char *)result->iname;
+        len = strncpy_from_user(kname, pathname, EMBEDDED_NAME_MAX);
+	if (unlikely(len < 0)) {
+            return -ENOMEM;
+	}
+    }
+    else
+    {
+        return -ENOMEM;
+    }
+/*
     if (strncpy_from_user(realpath, pathname, 128) != 0)
     {
         printh("could could get real pathname.\n");
         return -EFAULT;
     }
     printh("%d add watch on %s\n", usr_pid, realpath);
-
-    return 0;
+*/
+    return ret;
 }
 
 /*************************** INOTIFY_RM_WATCH ***************************/
