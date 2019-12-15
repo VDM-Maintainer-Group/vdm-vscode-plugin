@@ -50,7 +50,7 @@ asmlinkage int new_inotify_add_watch(int fd, const char __user *pathname, u32 ma
     printh("%d add watch on %s\n", usr_pid, realpath);
 */
     printh("I hooked, and let go.");
-    return ori_inotify_add_watch(fd, pathname, mask);
+    return old_inotify_add_watch(fd, pathname, mask);
 }
 
 static int __init inotify_hook_init(void)
@@ -59,8 +59,8 @@ static int __init inotify_hook_init(void)
 
     p_sys_call_table = (void **) kallsyms_lookup_name("sys_call_table");
     //set_addr_rw((unsigned long)p_sys_call_table);
-    ori_inotify_add_watch = p_sys_call_table[__NR_inotify_add_watch];
-    p_sys_call_table[__NR_inotify_add_watch] = mod_inotify_add_watch;
+    old_inotify_add_watch = p_sys_call_table[__NR_inotify_add_watch];
+    p_sys_call_table[__NR_inotify_add_watch] = new_inotify_add_watch;
 
     write_cr0(read_cr0() | (0x10000));
 
@@ -69,10 +69,10 @@ static int __init inotify_hook_init(void)
 
 static void __exit inotify_hook_fini(void)
 {
-    //p_sys_call_table[__NR_inotify_add_watch] = ori_inotify_add_watch;
     write_cr0(read_cr0() & (~0x10000));
-    set_addr_ro((unsigned long) p_sys_call_table);
+    p_sys_call_table[__NR_inotify_add_watch] = old_inotify_add_watch;
     write_cr0(read_cr0() | (0x10000));
+
     printh("inotify module exit.\n\n");
 }
 
