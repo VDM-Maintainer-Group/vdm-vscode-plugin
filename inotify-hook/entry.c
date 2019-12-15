@@ -11,6 +11,16 @@
 #include <linux/delay.h>
 #include <linux/kdev_t.h>
 #include <linux/utsname.h>
+#include <linux/hash.h>
+#include <linux/bitops.h>
+#include <linux/mount.h>
+#include <linux/audit.h>
+#include <linux/capability.h>
+#include <linux/file.h>
+#include <linux/slab.h>
+#include <linux/fs.h>
+#include <linux/namei.h>
+#include <linux/pagemap.h>
 
 #define EMBEDDED_NAME_MAX	(PATH_MAX - offsetof(struct filename, iname))
 
@@ -22,7 +32,7 @@
 #error "Only supports x86_64 kernel <=> cpu!"
 #endif
 
-void **sys_call_table;
+void **p_sys_call_table;
 /*************************** STRICT PROTOTYPES ***************************/
 asmlinkage long (*ori_inotify_add_watch) (int, const char __user *, u32);
 asmlinkage long mod_inotify_add_watch(int, const char __user *, u32);
@@ -39,7 +49,7 @@ asmlinkage long mod_inotify_add_watch(int fd, const char __user *pathname, u32 m
     long ret;
     pid_t usr_pid = current->pid;
     struct filename *result;
-    char *name;
+    char *kname;
     int len;
 
     ret = ori_inotify_add_watch(fd, pathname, mask);
@@ -117,17 +127,17 @@ static int __init inotify_hook_init(void)
     unsigned long cr0;
 
     /* get sys_call_table pointer */
-    sys_call_table = (void **) find_sys_call_table();
-    if (!sys_call_table)
+    p_sys_call_table = (void **) find_sys_call_table();
+    if (!p_sys_call_table)
     {
-        sys_call_table = (void **) kallsyms_lookup_name("sys_call_table");
-        if (!sys_call_table)
+        p_sys_call_table = (void **) kallsyms_lookup_name("sys_call_table");
+        if (!p_sys_call_table)
         {
             printh("Cannot find sys_call_table address\n");
             return -EINVAL;
         }
     }
-    printh("Find sys_call_table at 0x%16lx\n", (unsigned long)sys_call_table);
+    printh("Find sys_call_table at 0x%16lx\n", (unsigned long)p_sys_call_table);
 
     /* get set_memory_rw & set_memory_ro operation */
     cr0 = read_cr0();
@@ -141,14 +151,14 @@ static int __init inotify_hook_init(void)
     }
 
     /* set syscall table r/w and hook */
-    ret = set_memory_rw(PAGE_ALIGN((unsigned long)sys_call_table),1);
+    ret = set_memory_rw(PAGE_ALIGN((unsigned long)p_sys_call_table),1);
     if (ret)
     {
         printh("Cannot set the memory to rw (%d)\n", ret);
         return -EINVAL;
     }
-    ori_inotify_add_watch = sys_call_table[__NR_inotify_add_watch];
-    sys_call_table[__NR_inotify_add_watch] = mod_inotify_add_watch;
+    ori_inotify_add_watch = p_sys_call_table[__NR_inotify_add_watch];
+    p_sys_call_table[__NR_inotify_add_watch] = mod_inotify_add_watch;
     printh("Replace inotify_add_watch (0x%16lx) with modified (0x%16lx)\n", \
             (unsigned long)ori_inotify_add_watch, (unsigned long)mod_inotify_add_watch);
     write_cr0(cr0);
@@ -162,8 +172,8 @@ static void __exit inotify_hook_fini(void)
     cr0 = read_cr0();
     write_cr0(cr0 & ~CR0_WP);
     
-    sys_call_table[__NR_inotify_add_watch] = ori_inotify_add_watch;
-    set_memory_ro(PAGE_ALIGN((unsigned long)sys_call_table), 1);
+    p_sys_call_table[__NR_inotify_add_watch] = ori_inotify_add_watch;
+    set_memory_ro(PAGE_ALIGN((unsigned long)p_sys_call_table), 1);
 
     write_cr0(cr0);
     printh("inotify module exit.\n\n");
