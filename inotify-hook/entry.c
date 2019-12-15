@@ -32,7 +32,7 @@ asmlinkage int mod_inotify_add_watch(int fd, const char __user *pathname, u32 ma
 }
 
 // asmlinkage int (*ori_inotify_rm_watch) (int, __s32);
-// asmlinkage int mod_inotify_add_watch(int fd, __s32 wd)
+// asmlinkage int mod_inotify_rm_watch(int fd, __s32 wd)
 // {
 //     return ori_inotify_rm_watch(fd, wd)
 // }
@@ -40,9 +40,7 @@ asmlinkage int mod_inotify_add_watch(int fd, const char __user *pathname, u32 ma
 static void set_addr_rw(const unsigned long addr)
 {
     unsigned int level;
-    pte_t *pte;
-
-    pte = lookup_address(addr, &level);
+    pte_t *pte = lookup_address(addr, &level);
     if (pte->pte &~ _PAGE_RW)
         pte->pte |= _PAGE_RW;
     local_flush_tlb();
@@ -57,10 +55,10 @@ int set_addr_ro(unsigned long address){
 
 static int __init inotify_hook_init(void)
 {
-    p_sys_call_table = (void *) kallsyms_lookup_name("sys_call_table");
-    ori_inotify_add_watch = p_sys_call_table[__NR_inotify_add_watch];
-
+    p_sys_call_table = (void **) kallsyms_lookup_name("sys_call_table");
     set_addr_rw((unsigned long)p_sys_call_table);
+
+    ori_inotify_add_watch = p_sys_call_table[__NR_inotify_add_watch];
     p_sys_call_table[__NR_inotify_add_watch] = mod_inotify_add_watch;
 
     return 0;
