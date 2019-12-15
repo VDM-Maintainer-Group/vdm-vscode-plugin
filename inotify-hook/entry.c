@@ -5,6 +5,7 @@
 #include <linux/version.h>
 #include <linux/kallsyms.h>
 #include <asm/tlbflush.h>
+#include <linux/sched.h>
 #include <linux/uaccess.h>
 #include <linux/syscalls.h>
 #include <linux/delay.h>
@@ -28,40 +29,11 @@ asmlinkage long mod_inotify_add_watch(int, const char __user *, u32);
 unsigned long **find_sys_call_table(void);
 static int __init inotify_hook_init(void);
 static void __exit inotify_hook_fini(void);
-/*Kernel >4.1 no longer exports set_memory_r*, here it's a fix :)*/
+/* Kernel >4.1 no longer exports set_memory_r*, here it's a fix :) */
 static int (*set_memory_rw)(unsigned long addr, int numpages) = NULL;
 static int (*set_memory_ro)(unsigned long addr, int numpages) = NULL;
-
-/*************************** INOTIFY_ADD_WATCH ***************************/
-asmlinkage long mod_inotify_add_watch(int fd, const char __user *pathname, u32 mask)
-{
-    long ret;
-    pid_t usr_pid = current->pid;
-    struct filename *result;
-    char *kname;
-    int len;
-
-    ret = ori_inotify_add_watch(fd, pathname, mask);
-
-    if ( (result=audit_reusename(pathname)) != 0)
-    {
-        kname = (char *)result->iname;
-        len = strncpy_from_user(kname, pathname, EMBEDDED_NAME_MAX);
-	if (unlikely(len < 0)) {
-            return -ENOMEM;
-	}
-        // printh("%d add watch on %s\n", usr_pid, realpath);
-    }
-
-    return ret;
-}
-
-/*************************** INOTIFY_RM_WATCH ***************************/
-// asmlinkage int (*ori_inotify_rm_watch) (int, __s32);
-// asmlinkage int mod_inotify_rm_watch(int fd, __s32 wd)
-// {
-//     return ori_inotify_rm_watch(fd, wd)
-// }
+/* Copied internal functions from kernel */
+struct filename *__audit_reusename(const __user char *uptr);
 
 /************************* ALTERNATIVE FUNCTION *************************/
 unsigned long **find_sys_call_table()
@@ -99,6 +71,37 @@ unsigned long **find_sys_call_table()
     }
     return NULL;
 }
+
+/*************************** INOTIFY_ADD_WATCH ***************************/
+asmlinkage long mod_inotify_add_watch(int fd, const char __user *pathname, u32 mask)
+{
+    long ret;
+    pid_t usr_pid = current->pid;
+    struct filename *result;
+    char *kname;
+    int len;
+
+    ret = ori_inotify_add_watch(fd, pathname, mask);
+
+    if ( (result=audit_reusename(pathname)) != 0)
+    {
+        kname = (char *)result->iname;
+        len = strncpy_from_user(kname, pathname, EMBEDDED_NAME_MAX);
+	if (unlikely(len < 0)) {
+            return -ENOMEM;
+	}
+        // printh("%d add watch on %s\n", usr_pid, realpath);
+    }
+
+    return ret;
+}
+
+/*************************** INOTIFY_RM_WATCH ***************************/
+// asmlinkage int (*ori_inotify_rm_watch) (int, __s32);
+// asmlinkage int mod_inotify_rm_watch(int fd, __s32 wd)
+// {
+//     return ori_inotify_rm_watch(fd, wd)
+// }
 
 /****************************** MAIN_ENTRY ******************************/
 static int __init inotify_hook_init(void)
