@@ -79,19 +79,21 @@ asmlinkage long mod_inotify_add_watch(int fd, const char __user *pathname, u32 m
 {
     long ret;
     pid_t usr_pid = current->pid;
-	struct audit_names *n;
+    struct audit_context *context = current->audit_context;
+    struct audit_names *n;
     const char *kname = NULL;
 
-    ret = ori_inotify_add_watch(fd, pathname, mask);
-
-    list_for_each_entry(n, &(current->audit_context)->names_list, list) {
-		if (!n->name)
-			continue;
-		if (n->name->uptr == pathname) {
-			n->name->refcnt++;
-			kname = n->name->iname;
-		}
-	}
+    printh("%d, 0x%16lx is the context.\n", usr_pid, (unsigned long)context);
+    //ret = ori_inotify_add_watch(fd, pathname, mask);
+/*
+    list_for_each_entry(n, &context->names_list, list) {
+        if (!n->name)
+            continue;
+        if (n->nmae->uptr == pathname)
+        {
+            kname = n->name->iname;
+        }
+    }
 
     if (kname)
     {
@@ -101,7 +103,7 @@ asmlinkage long mod_inotify_add_watch(int fd, const char __user *pathname, u32 m
     {
         printh("(%ld) 0x%16lx failed to match existing pathname.\n", ret, (unsigned long)pathname);
     }
-        
+*/
     return ret;
 }
 
