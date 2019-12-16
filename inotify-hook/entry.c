@@ -12,6 +12,7 @@
 #include <linux/namei.h>
 #include <linux/audit.h>
 #include <linux/fs.h>
+#include "kernel_audit.h"
 
 #define EMBEDDED_NAME_MAX	(PATH_MAX - offsetof(struct filename, iname))
 
@@ -78,30 +79,28 @@ asmlinkage long mod_inotify_add_watch(int fd, const char __user *pathname, u32 m
 {
     long ret;
     pid_t usr_pid = current->pid;
-    struct filename *result;
-    char *kname;
-    int len;
+	struct audit_names *n;
+    const char *kname = NULL;
 
     ret = ori_inotify_add_watch(fd, pathname, mask);
 
-    result = __getname();
-    if (unlikely(!result))
-    {
-        printh("Fail to allocate filename.\n");
-        return -ENOMEM;
-    }
+    list_for_each_entry(n, &(current->audit_context)->names_list, list) {
+		if (!n->name)
+			continue;
+		if (n->name->uptr == pathname) {
+			n->name->refcnt++;
+			kname = n->name->iname;
+		}
+	}
 
-    kname = (char *) result->iname;
-    len = strncpy_from_user(kname, pathname, EMBEDDED_NAME_MAX);
-    if (unlikely(len < 0))
+    if (kname)
     {
-        printh("Fail to copy from user.\n");
-        __putname(result);
-        return -ENOMEM;
+        printh("%d add watch on %s\n", usr_pid, kname);   
     }
-
-    printh("%d add watch on %s\n", usr_pid, kname);
-    __putname(result);
+    else
+    {
+        printh("(%ld) 0x%16lx failed to match existing pathname.\n", ret, (unsigned long)pathname);
+    }
         
     return ret;
 }
