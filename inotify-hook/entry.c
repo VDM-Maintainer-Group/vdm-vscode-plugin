@@ -8,83 +8,45 @@
 #include <linux/sched.h>
 #include <linux/uaccess.h>
 #include <linux/syscalls.h>
-#include <linux/delay.h>
-#include <linux/namei.h>
-#include <linux/audit.h>
-#include <linux/fs.h>
-#include "kernel_audit.h"
-
-#define EMBEDDED_NAME_MAX	(PATH_MAX - offsetof(struct filename, iname))
-
 #define KERN_LOG KERN_NOTICE "[printk]"
 #define printh(...) printk(KERN_LOG __VA_ARGS__)
 
-#define CR0_WP 0x00010000   // Write-Protect Bit (CR0:16) amd64
-#ifndef _LP64
-#error "Only supports x86_64 kernel <=> cpu!"
-#endif
-
+/************************* PROTOTYPE DECLARATION *************************/
 void **p_sys_call_table;
-/*************************** STRICT PROTOTYPES ***************************/
+static void set_addr_rw(const unsigned long);
+static void set_addr_ro(const unsigned long);
 asmlinkage long (*ori_inotify_add_watch) (int, const char __user *, u32);
 asmlinkage long mod_inotify_add_watch(int, const char __user *, u32);
-unsigned long **find_sys_call_table(void);
 static int __init inotify_hook_init(void);
 static void __exit inotify_hook_fini(void);
-/* Kernel >4.1 no longer exports set_memory_r*, here it's a fix :) */
-static int (*set_memory_rw)(unsigned long addr, int numpages) = NULL;
-static int (*set_memory_ro)(unsigned long addr, int numpages) = NULL;
-/* Copied internal functions from kernel */
-struct filename *__audit_reusename(const __user char *uptr);
 
-/************************* ALTERNATIVE FUNCTION *************************/
-unsigned long **find_sys_call_table()
+static void set_addr_rw(const unsigned long addr)
 {
-    unsigned long ptr;
-    unsigned long *p;
-    static long (*sys_close) (unsigned int fd)=NULL;
+    unsigned int level;
+    pte_t *pte;
 
-    sys_close=(void *)kallsyms_lookup_name("sys_close");
-    if (!sys_close)
-    {
-        printk(KERN_DEBUG "[HOOK] Symbol sys_close not found\n");
-        return NULL;
-    }
+    pte = lookup_address(addr, &level);
+    if (pte->pte &~ _PAGE_RW)
+        pte->pte |= _PAGE_RW;
 
-    /* the sys_call_table can be found between the addresses of sys_close
-     * and loops_pre_jiffy. Look at /boot/System.map or /proc/kallsyms to
-     * see if it is the case for your kernel */
-    for (ptr = (unsigned long)sys_close;
-            ptr < (unsigned long)&loops_per_jiffy;
-            ptr += sizeof(void *))
-    {
-        p = (unsigned long *)ptr;
-        /* Indexes such as __NR_close can be found in
-         * /usr/include/x86_64-linux-gnu/asm/unistd{,_64}.h
-         * syscalls function can be found in
-         * /usr/src/`uname -r`/include/linux/syscalls.h */
-        if (p[__NR_close] == (unsigned long)sys_close)
-        {
-            /* the address of the ksys_close function is equal to the one found
-             * in the sys_call_table */
-            printk(KERN_DEBUG "[HOOK] Found the sys_call_table!!!\n");
-            return (unsigned long **)p;
-        }
-    }
-    return NULL;
+    local_flush_tlb();
+}
+
+static void set_addr_ro(const unsigned long address){
+    unsigned int level;
+    pte_t *pte = lookup_address(address, &level);
+    pte->pte = pte->pte &~_PAGE_RW;
 }
 
 /*************************** INOTIFY_ADD_WATCH ***************************/
 asmlinkage long mod_inotify_add_watch(int fd, const char __user *pathname, u32 mask)
 {
     long ret;
-    pid_t usr_pid = current->pid;
+    pid_t usr_pid = task_pid_nr(current);
     struct audit_context *context = current->audit_context;
-    struct audit_names *n;
-    const char *kname = NULL;
 
     printh("%d, 0x%16lx is the context.\n", usr_pid, (unsigned long)context);
-    //ret = ori_inotify_add_watch(fd, pathname, mask);
+    ret = ori_inotify_add_watch(fd, pathname, mask);
 /*
     list_for_each_entry(n, &context->names_list, list) {
         if (!n->name)
@@ -107,69 +69,37 @@ asmlinkage long mod_inotify_add_watch(int fd, const char __user *pathname, u32 m
     return ret;
 }
 
-/*************************** INOTIFY_RM_WATCH ***************************/
-// asmlinkage int (*ori_inotify_rm_watch) (int, __s32);
-// asmlinkage int mod_inotify_rm_watch(int fd, __s32 wd)
-// {
-//     return ori_inotify_rm_watch(fd, wd)
-// }
-
 /****************************** MAIN_ENTRY ******************************/
 static int __init inotify_hook_init(void)
 {
-    int ret;
-    unsigned long cr0;
-
     /* get sys_call_table pointer */
-    p_sys_call_table = (void **) find_sys_call_table();
+    p_sys_call_table = (void **) kallsyms_lookup_name("sys_call_table");
     if (!p_sys_call_table)
     {
-        p_sys_call_table = (void **) kallsyms_lookup_name("sys_call_table");
-        if (!p_sys_call_table)
-        {
-            printh("Cannot find sys_call_table address\n");
-            return -EINVAL;
-        }
-    }
-    printh("Find sys_call_table at 0x%16lx\n", (unsigned long)p_sys_call_table);
-
-    /* get set_memory_rw & set_memory_ro operation */
-    cr0 = read_cr0();
-    write_cr0(cr0 & (~CR0_WP)); //disable the write-protect bit
-    set_memory_rw = (void *)kallsyms_lookup_name("set_memory_rw");
-    set_memory_ro = (void *)kallsyms_lookup_name("set_memory_ro");
-    if (set_memory_rw==NULL || set_memory_ro==NULL)
-    {
-        printh("set_memory operation not found.\n");
+        printh("Cannot find sys_call_table address\n");
         return -EINVAL;
     }
-
-    /* set syscall table r/w and hook */
-    ret = set_memory_rw(PAGE_ALIGN((unsigned long)p_sys_call_table),1);
-    if (ret)
+    else
     {
-        printh("Cannot set the memory to rw (%d)\n", ret);
-        return -EINVAL;
+        printh("Find sys_call_table at 0x%16lx\n", (unsigned long)p_sys_call_table);
     }
+
+    /* syscall replacement */
+    set_addr_rw((unsigned long)p_sys_call_table);
     ori_inotify_add_watch = p_sys_call_table[__NR_inotify_add_watch];
     p_sys_call_table[__NR_inotify_add_watch] = mod_inotify_add_watch;
+    set_addr_ro((unsigned long)p_sys_call_table);
     printh("Replace inotify_add_watch (0x%16lx) with modified (0x%16lx)\n", \
             (unsigned long)ori_inotify_add_watch, (unsigned long)mod_inotify_add_watch);
-    write_cr0(cr0);
 
     return 0;
 }
 
 static void __exit inotify_hook_fini(void)
 {
-    unsigned long cr0;
-    cr0 = read_cr0();
-    write_cr0(cr0 & ~CR0_WP);
-    
+    set_addr_rw((unsigned long)p_sys_call_table);
     p_sys_call_table[__NR_inotify_add_watch] = ori_inotify_add_watch;
-    set_memory_ro(PAGE_ALIGN((unsigned long)p_sys_call_table), 1);
-
-    write_cr0(cr0);
+    set_addr_ro((unsigned long)p_sys_call_table);
     printh("inotify module exit.\n\n");
 }
 
