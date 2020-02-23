@@ -8,6 +8,9 @@
 #include <linux/sched.h>
 #include <linux/uaccess.h>
 #include <linux/syscalls.h>
+#include <linux/namei.h>
+#define IN_ONLYDIR		    0x01000000	/* only watch the path if it is a directory */
+#define IN_DONT_FOLLOW		0x02000000	/* don't follow a sym link */
 #define KERN_LOG KERN_NOTICE "[printk]"
 #define printh(...) printk(KERN_LOG __VA_ARGS__)
 
@@ -42,30 +45,25 @@ static void set_addr_ro(const unsigned long address){
 asmlinkage long mod_inotify_add_watch(int fd, const char __user *pathname, u32 mask)
 {
     long ret;
+    struct path path;
+    unsigned int flags = 0;
+    char *pname = NULL;
+    char buf[PATH_MAX];
     pid_t usr_pid = task_pid_nr(current);
-    struct audit_context *context = current->audit_context;
 
-    printh("%d, 0x%16lx is the context.\n", usr_pid, (unsigned long)context);
     ret = ori_inotify_add_watch(fd, pathname, mask);
-/*
-    list_for_each_entry(n, &context->names_list, list) {
-        if (!n->name)
-            continue;
-        if (n->nmae->uptr == pathname)
-        {
-            kname = n->name->iname;
-        }
+
+    if (!(mask & IN_DONT_FOLLOW))
+		flags |= LOOKUP_FOLLOW;
+	if (mask & IN_ONLYDIR)
+		flags |= LOOKUP_DIRECTORY;
+    
+    if (user_path_at(AT_FDCWD, pathname, flags, &path) == 0)
+    {
+        pname = dentry_path_raw(path.dentry, buf, PATH_MAX); //->d_iname
+        printh("%d, %s\n", usr_pid, pname);
     }
 
-    if (kname)
-    {
-        printh("%d add watch on %s\n", usr_pid, kname);   
-    }
-    else
-    {
-        printh("(%ld) 0x%16lx failed to match existing pathname.\n", ret, (unsigned long)pathname);
-    }
-*/
     return ret;
 }
 
