@@ -1,9 +1,13 @@
 # VDM Vscode Plugin
-
 * The efficient solution exists in `inotify_group` reverse lookup, however, I could not find the way for now.
 * So, I hook both the `add_watch` and `rm_watch` to maintain existing watcher list for each process.
     * With **GUI-only** and **blacklist** design, it would alleviate the overhead a lot.
 * The maintained list would be available on *proc* subsystem, and easily retrieved from userspace.
+
+### TODO
+* Is maintain of tree-layer lookup table (PID,FD,WD) necessary?
+* Is maintain of PID tree necessary?
+* How to fast remove useless entries in lookup table?
 
 ### Reference
 1. https://security.stackexchange.com/questions/210897/why-is-there-a-need-to-modify-system-call-tables-in-linux

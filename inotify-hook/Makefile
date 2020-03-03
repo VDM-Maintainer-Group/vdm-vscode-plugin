@@ -1,6 +1,6 @@
 ifneq ($(KERNELRELEASE),)
 	obj-m := inotify_hook.o
-	inotify_hook-objs := main.o
+	inotify_hook-objs := main.o netlink_comm.o
 else
 	PWD := $(shell pwd)
 	KDIR := /lib/modules/$(shell uname -r)/build

@@ -4,6 +4,7 @@
 #include <linux/types.h>
 #include <linux/version.h>
 #include "main.h"
+#include "netlink_comm.h"
 
 
 /************************* PROTOTYPE DECLARATION *************************/
@@ -27,13 +28,13 @@ asmlinkage int mod_inotify_add_watch(int fd, const char __user *pathname, u32 ma
 
     wd = ori_inotify_add_watch(fd, pathname, mask);
 
-    if (!(mask & IN_DONT_FOLLOW))
-		flags |= LOOKUP_FOLLOW;
-	if (mask & IN_ONLYDIR)
-		flags |= LOOKUP_DIRECTORY;
-    
-    if (wd>0 && user_path_at(AT_FDCWD, pathname, flags, &path)==0)
+    if (wd>=0 && user_path_at(AT_FDCWD, pathname, flags, &path)==0)
     {
+        if (!(mask & IN_DONT_FOLLOW))
+		    flags |= LOOKUP_FOLLOW;
+        if (mask & IN_ONLYDIR)
+            flags |= LOOKUP_DIRECTORY;
+    
         pname = dentry_path_raw(path.dentry, buf, PATH_MAX);
         path_put(&path);
         printh("[%d] (%d %d + %s) \n", usr_pid, fd, wd, pname);
