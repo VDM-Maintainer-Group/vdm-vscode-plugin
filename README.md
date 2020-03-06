@@ -5,9 +5,9 @@
 * The maintained list would be available on *proc* subsystem, and easily retrieved from userspace.
 
 ### TODO
-* Is maintain of tree-layer lookup table (PID,FD,WD) necessary?
-* Is maintain of PID tree necessary?
-* How to fast remove useless entries in lookup table?
+* Is maintain of tree-layer lookup table (PID,FD,WD) necessary? <-- Yes
+* Is maintain of PID tree necessary? <-- Yes
+* How to fast remove useless entries in lookup table? <-- memory offset & linked-list
 
 ### Reference
 1. https://security.stackexchange.com/questions/210897/why-is-there-a-need-to-modify-system-call-tables-in-linux
