@@ -4,10 +4,10 @@
     * With **GUI-only** and **blacklist** design, it would alleviate the overhead a lot.
 * The maintained list would be available on *proc* subsystem, and easily retrieved from userspace.
 
-### TODO
-* Is maintain of tree-layer lookup table (PID,FD,WD) necessary? <-- Yes
-* Is maintain of PID tree necessary? <-- Yes
-* How to fast remove useless entries in lookup table? <-- memory offset & linked-list
+### TODO (change mind)
+* Is maintain of tree-layer lookup table (PID,FD,WD) necessary? <-- No, in user space
+* Is maintain of PID tree necessary? <-- NO.
+* How to fast remove useless entries in lookup table? <-- ~~memory offset & linked-list~~ not now.
 
 ### Reference
 1. https://security.stackexchange.com/questions/210897/why-is-there-a-need-to-modify-system-call-tables-in-linux
