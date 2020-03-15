@@ -7,6 +7,7 @@
 #include <linux/uaccess.h>
 #include <linux/syscalls.h>
 #include <linux/namei.h>
+#include <linux/radix-tree.h>
 
 #define IN_ONLYDIR		    0x01000000	/* only watch the path if it is a directory */
 #define IN_DONT_FOLLOW		0x02000000	/* don't follow a sym link */
