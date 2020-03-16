@@ -1,6 +1,7 @@
 #ifndef __HOOK_MAIN_H__
 #define __HOOK_MAIN_H__
 
+#include <linux/slab.h>
 #include <linux/kallsyms.h>
 #include <asm/tlbflush.h>
 #include <linux/sched.h>

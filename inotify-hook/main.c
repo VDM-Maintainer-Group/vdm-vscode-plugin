@@ -90,14 +90,12 @@ asmlinkage long mod_inotify_rm_watch(int fd, __s32 wd)
 /***************************** UTILITY FUNCTION *****************************/
 static void pid_tree_insert(int pid)
 {
-    // struct *radix_tree_root fdwd_table;
-    // kmem_cache_alloc(fdwd_table, GFP_NOFS);
+    // struct *radix_tree_root fdwd_table kmalloc(sizeof(struct radix_tree_root), GFP_KERNEL);
     // INIT_RADIX_TREE(fdwd_table, GFP_ATOMIC);
 }
 static void pid_tree_remove(int pid)
 {
-    // struct *radix_tree_root fdwd_table;
-    // kmem_cache_alloc(fdwd_table, GFP_NOFS);
+    // struct *radix_tree_root fdwd_table kmalloc(sizeof(struct radix_tree_root), GFP_KERNEL);
     // INIT_RADIX_TREE(fdwd_table, GFP_ATOMIC);
 }
 
