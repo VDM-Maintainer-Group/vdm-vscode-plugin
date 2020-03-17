@@ -7,7 +7,7 @@ References:
 import os, time, struct
 import socket
 from sys import argv
-from gnlpy import netlin
+from gnlpy import netlink
 
 SOL_NETLINK = 270
 NETLINK_ADD_MEMBERSHIP  = 1
