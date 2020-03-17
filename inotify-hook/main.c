@@ -133,9 +133,9 @@ static void pid_tree_remove_item(struct radix_tree_root *item)
     void **slot;
 
     radix_tree_for_each_slot(slot, item, &iter, 0){
-        void *item = radix_tree_deref_slot(slot);
-        if (!radix_tree_exception(item))
-            kfree(item);
+        void *t = radix_tree_deref_slot(slot);
+        if (!radix_tree_exception(t))
+            kfree(t);
         radix_tree_iter_delete(PID_TABLE, &iter, slot);
     }
     radix_tree_delete(PID_TABLE, pid);

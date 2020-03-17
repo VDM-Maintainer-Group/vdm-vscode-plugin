@@ -2,7 +2,6 @@
 all:dependency build install
 
 dependency:
-	pip3 install gnlpy --user
 
 build:
 	$(MAKE) -C inotify-hook

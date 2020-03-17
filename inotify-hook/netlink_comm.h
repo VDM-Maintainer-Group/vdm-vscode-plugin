@@ -7,6 +7,7 @@
 #include <asm/types.h>
 #include <linux/netlink.h>
 #include <linux/skbuff.h>
+#include <linux/string.h>
 
 #define NETLINK_USER 31
 

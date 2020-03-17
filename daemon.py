@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 ''' Userspace Inotify Lookup Daemon Program
 References:
-    1. https://github.com/est/pymnl/blob/master/pymnl/nlsocket.py
-    2. https://stackoverflow.com/questions/35876323/python-netlink-multicast-communication-in-kernels-above-4
+    1. https://github.com/facebook/gnlpy
+    2. https://github.com/est/pymnl/blob/master/pymnl/nlsocket.py 
 '''
 import os, time, struct
 import socket
@@ -16,18 +16,6 @@ NETLINK_PKTINFO         = 3
 NETLINK_BROADCAST_ERROR = 4
 NETLINK_NO_ENOBUFS      = 5
 
-KERNEL_NAME='inotify_hook'
-req_attr = netlink.create_attr_list_type('req',
-                ('PID', netlink.U32Type)
-            )
-res_attr = netlink.create_attr_list_type('res',
-                ('var_name', netlink.NulStringType)
-            )
-msg_format = netlink.create_genl_message_type('Msg', KERNEL_NAME
-                ('request', req_attr),
-                ('response', res_attr)
-            )
-
 def main(pid=argv[1]):
     sockfd = socket.socket(socket.AF_NETLINK, socket.SOCK_RAW, socket.NETLINK_USERSOCK)
     sockfd.bind((os.getpid(), 0))
@@ -36,11 +24,12 @@ def main(pid=argv[1]):
     sockfd.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 65536)
     sockfd.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 65536)
 
-    sock.send(
-        Msg('request', attr_list=req_attr(int(pid)))
-    )
-    reply = sock.recv()[0]
-    reply.get_attr_list().get('response')  # the address string
+    #FIXME: send PID, get string split by ";"
+    # sock.send(
+    #     Msg('request', attr_list=req_attr(int(pid)))
+    # )
+    # reply = sock.recv()[0]
+    # reply.get_attr_list().get('response')  # the address string
     pass
 
 if __name__ == "__main__":
