@@ -77,7 +77,7 @@ asmlinkage long mod_inotify_add_watch(int fd, const char __user *pathname, u32 m
         wd_table = radix_tree_lookup(PID_TABLE, usr_pid);
         if (wd_table==NULL)
         {
-            printh("add_watch: No PID %d Record!", usr_pid);
+            printh("add_watch: No PID %d Record!\n", usr_pid);
         }
         else{
             precord = kmalloc(strlen(pname), GFP_ATOMIC);
@@ -100,7 +100,7 @@ asmlinkage long mod_inotify_rm_watch(int fd, __s32 wd)
     wd_table = radix_tree_lookup(PID_TABLE, usr_pid);
     if (wd_table==NULL)
     {
-        printh("rm_watch: No PID %d Record!", usr_pid);
+        printh("rm_watch: No PID %d Record!\n", usr_pid);
     }
     else{
         precord = radix_tree_delete(wd_table, fd*10000+wd); //FIXME: better (fw,wd) encoding
@@ -124,7 +124,7 @@ static void pid_tree_add(unsigned long pid)
     error = radix_tree_insert(PID_TABLE, pid, (void *)wd_table);
     if (error < 0)
     {
-        printh("Record allocation fail for process %d", pid);
+        printh("Record allocation fail for process %d.\n", pid);
     }
 }
 static void pid_tree_remove_item(struct radix_tree_root *item)
@@ -171,13 +171,19 @@ static void pid_tree_clean(void)
 /****************************** MAIN_ENTRY ******************************/
 static int __init inotify_hook_init(void)
 {
+    /* initialization */
     INIT_RADIX_TREE(wd_table, GFP_ATOMIC);
+    if ( netlink_comm_init < 0 )
+    {
+        printh("Netlink_Comm Initialization Fails.\n");
+        return -EINVAL;
+    }
 
     /* get sys_call_table pointer */
     p_sys_call_table = (void **) kallsyms_lookup_name("sys_call_table");
     if (!p_sys_call_table)
     {
-        printh("Cannot find sys_call_table address\n");
+        printh("Cannot find sys_call_table address.\n");
         return -EINVAL;
     }
 
@@ -194,7 +200,7 @@ static int __init inotify_hook_init(void)
     p_sys_call_table[__NR_sys_exit_group]    = mod_sys_exit_group;
     set_addr_ro((unsigned long)p_sys_call_table);
 
-    printh("inotify hook module init.\n");
+    printh("Inotify hook module init.\n");
     return 0;
 }
 
@@ -208,8 +214,9 @@ static void __exit inotify_hook_fini(void)
     p_sys_call_table[__NR_sys_exit_group]    = ori_sys_exit_group;
     set_addr_ro((unsigned long)p_sys_call_table);
 
+    netlink_comm_exit();
     pid_tree_clean();
-    printh("inotify hook module exit.\n\n");
+    printh("Inotify hook module exit.\n\n");
 }
 
 module_init(inotify_hook_init);
