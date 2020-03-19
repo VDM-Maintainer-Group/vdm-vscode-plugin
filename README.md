@@ -7,6 +7,7 @@
 ### TODO
 * Fragment netlink sending in kernel, and finish corresponding receiving in usersapce.
 * Complete the de-facto vscode plugin.
+* add DKMS compiling.
 
 ### Reference
 1. https://security.stackexchange.com/questions/210897/why-is-there-a-need-to-modify-system-call-tables-in-linux
