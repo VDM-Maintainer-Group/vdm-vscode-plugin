@@ -83,7 +83,7 @@ asmlinkage long mod_inotify_add_watch(int fd, const char __user *pathname, u32 m
         //NOTE: insert inotify record for PID in PID_TABLE
         precord = kmalloc(strlen(pname), GFP_ATOMIC);
         strcpy(precord, pname);
-        if (fd>1000) //NOTE: at most 999 fd allowed.
+        if (fd>=1000) //at most 1000 fd allowed
         {
             printh("PID %d: Record Up Limit Achieved.\n", usr_pid);
         }
