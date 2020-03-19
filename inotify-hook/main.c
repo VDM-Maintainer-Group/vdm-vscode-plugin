@@ -64,26 +64,32 @@ asmlinkage long mod_inotify_add_watch(int fd, const char __user *pathname, u32 m
 
     wd = ori_inotify_add_watch(fd, pathname, mask);
 
+    if (!(mask & IN_DONT_FOLLOW))
+        flags |= LOOKUP_FOLLOW;
+    if (mask & IN_ONLYDIR)
+        flags |= LOOKUP_DIRECTORY;
     if (wd>=0 && user_path_at(AT_FDCWD, pathname, flags, &path)==0)
     {
-        if (!(mask & IN_DONT_FOLLOW))
-		    flags |= LOOKUP_FOLLOW;
-        if (mask & IN_ONLYDIR)
-            flags |= LOOKUP_DIRECTORY;
-    
         pname = dentry_path_raw(path.dentry, buf, PATH_MAX);
         path_put(&path);
 
         wd_table = radix_tree_lookup(PID_TABLE, usr_pid);
         if (wd_table==NULL)
         {
-            printh("add_watch: No PID %d Record!\n", usr_pid);
+            printh("PID %d: (add_watch) No Record Found.\n", usr_pid);
+            return;
         }
-        else{
-            precord = kmalloc(strlen(pname), GFP_ATOMIC);
-            strcpy(precord, pname);
-            radix_tree_insert(wd_table, fd*10000+wd, precord) //FIXME: better (fw,wd) encoding
-            // printh("[%d] (%d %d + %s) \n", usr_pid, fd, wd, pname);
+        
+        //NOTE: insert inotify record for PID in PID_TABLE
+        precord = kmalloc(strlen(pname), GFP_ATOMIC);
+        strcpy(precord, pname);
+        if (fd>1000) //NOTE: at most 999 fd allowed.
+        {
+            printh("PID %d: Record Up Limit Achieved.\n", usr_pid);
+        }
+        else
+        {
+            radix_tree_insert(wd_table, wd*1000+fd, precord)
         }
     }
 
@@ -100,15 +106,15 @@ asmlinkage long mod_inotify_rm_watch(int fd, __s32 wd)
     wd_table = radix_tree_lookup(PID_TABLE, usr_pid);
     if (wd_table==NULL)
     {
-        printh("rm_watch: No PID %d Record!\n", usr_pid);
+        printh("PID %d: (rm_watch) No Record Found.\n", usr_pid);
+        return;
     }
-    else{
-        precord = radix_tree_delete(wd_table, fd*10000+wd); //FIXME: better (fw,wd) encoding
-        if (!(precord==NULL))
-        {
-            kfree(precord);
-            // printh("[%d] (%d %d - )\n", usr_pid, fd, wd);
-        }
+    
+    //NOTE: remove inotify record for PID in PID_TABLE
+    precord = radix_tree_delete(wd_table, wd*1000+fd);
+    if (!(precord==NULL))
+    {
+        kfree(precord);
     }
 
     return ret;
@@ -124,7 +130,7 @@ static void pid_tree_add(unsigned long pid)
     error = radix_tree_insert(PID_TABLE, pid, (void *)wd_table);
     if (error < 0)
     {
-        printh("Record allocation fail for process %d.\n", pid);
+        printh("PID %d: Record Allocation Failed.\n", pid);
     }
 }
 static void pid_tree_remove_item(struct radix_tree_root *item)
@@ -175,7 +181,7 @@ static int __init inotify_hook_init(void)
     INIT_RADIX_TREE(wd_table, GFP_ATOMIC);
     if ( netlink_comm_init < 0 )
     {
-        printh("Netlink_Comm Initialization Fails.\n");
+        printh("Netlink_Comm Initialization Failed.\n");
         return -EINVAL;
     }
 
