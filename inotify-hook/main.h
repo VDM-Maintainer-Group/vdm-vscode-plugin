@@ -5,6 +5,7 @@
 #include <asm/tlbflush.h>
 #include <linux/sched.h>
 #include <linux/uaccess.h>
+#include <linux/kallsyms.h>
 #include <linux/syscalls.h>
 #include <linux/namei.h>
 #include <linux/string.h>

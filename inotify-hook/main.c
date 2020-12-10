@@ -5,54 +5,21 @@
 * 3. https://lwn.net/Articles/175432/
 */
 #include <linux/kernel.h>
-#include <linux/init.h>
 #include <linux/module.h>
 #include <linux/types.h>
 #include <linux/version.h>
+#include "khook/engine.c"
 #include "main.h"
 // #include "netlink_comm.h"
 
 
 /************************* PROTOTYPE DECLARATION *************************/
-void **p_sys_call_table;
-asmlinkage long (*ori_inotify_add_watch) (int, const char __user *, u32);
-asmlinkage long (*ori_inotify_rm_watch) (int, __s32);
-// asmlinkage long (*ori_sys_execve) (const char __user *, const char __user *const __user *, const char __user *const __user *);
-// asmlinkage long (*ori_sys_fork) (void);
-// asmlinkage long (*ori_sys_exit_group)(int);
-
-asmlinkage long mod_inotify_add_watch(int, const char __user *, u32);
-asmlinkage long mod_inotify_rm_watch(int, __s32);
-// asmlinkage long mod_sys_execve(const char __user *, const char __user *const __user *, const char __user *const __user *);
-// asmlinkage long mod_sys_fork(void);
-// asmlinkage long mod_sys_exit_group(int);
-
-// static void pid_tree_add(unsigned long);
-// static void pid_tree_remove(unsigned long);
-// static void pid_tree_clean(void);
 static int __init inotify_hook_init(void);
 static void __exit inotify_hook_fini(void);
 
-
-/*************************** PROCESS SYSCALL HOOK ***************************/
-// asmlinkage long mod_sys_execve(const char __user *filename, const char __user *const __user *argv, const char __user *const __user *envp)
-// {
-//     pid_tree_add( (long)current->pid );
-//     return ori_sys_execve(filename, argv, envp);
-// }
-// asmlinkage long mod_sys_fork(void)
-// {
-//     pid_tree_add( (long)current->pid );
-//     return ori_sys_fork();
-// }
-// asmlinkage long mod_sys_exit_group(int error_code)
-// {
-//     pid_tree_remove( (long)current->pid );
-//     return ori_sys_exit_group(error_code);
-// }
-
 /*************************** INOTIFY SYSCALL HOOK ***************************/
-asmlinkage long mod_inotify_add_watch(int fd, const char __user *pathname, u32 mask)
+KHOOK_EXT(long, __x64_sys_inotify_add_watch, int, const char __user *, u32);
+static long khook___x64_sys_inotify_add_watch(int fd, const char __user *pathname, u32 mask)
 {
     int wd;
     struct path path;
@@ -63,16 +30,18 @@ asmlinkage long mod_inotify_add_watch(int fd, const char __user *pathname, u32 m
     unsigned long usr_pid = current->pid;
     // struct radix_tree_root *wd_table;
 
-    wd = ori_inotify_add_watch(fd, pathname, mask);
+    wd = KHOOK_ORIGIN(__x64_sys_inotify_add_watch, fd, pathname, mask);
 
     if (!(mask & IN_DONT_FOLLOW))
         flags |= LOOKUP_FOLLOW;
     if (mask & IN_ONLYDIR)
         flags |= LOOKUP_DIRECTORY;
-    if (wd>=0 && user_path_at(AT_FDCWD, pathname, flags, &path)==0)
+    // if (wd>=0 && user_path_at(AT_FDCWD, pathname, flags, &path)==0)
+    if (wd>=0)
     {
         pname = dentry_path_raw(path.dentry, buf, PATH_MAX);
         path_put(&path);
+        printh("PID %ld add: %s\n", usr_pid, pname);
 
         // wd_table = radix_tree_lookup(PID_TABLE, usr_pid);
         // if (wd_table==NULL)
@@ -96,13 +65,15 @@ asmlinkage long mod_inotify_add_watch(int fd, const char __user *pathname, u32 m
 
     return wd;
 }
-asmlinkage long mod_inotify_rm_watch(int fd, __s32 wd)
+
+KHOOK_EXT(long, __x64_sys_inotify_rm_watch, int, __s32);
+static long khook___x64_sys_inotify_rm_watch(int fd, __s32 wd)
 {
     int ret;
-    char *precord;
+    // char *precord;
     // struct radix_tree_root *wd_table;
 
-    ret = ori_inotify_rm_watch(fd, wd);
+    ret = KHOOK_ORIGIN(__x64_sys_inotify_rm_watch, fd, wd);
 
     // wd_table = radix_tree_lookup(PID_TABLE, usr_pid);
     // if (wd_table==NULL)
@@ -174,38 +145,23 @@ asmlinkage long mod_inotify_rm_watch(int fd, __s32 wd)
 //     }
 // }
 
-
 /****************************** MAIN_ENTRY ******************************/
 static int __init inotify_hook_init(void)
 {
-    /* initialization */
-    // INIT_RADIX_TREE(wd_table, GFP_ATOMIC);
+    int ret = 0;
+
+    /* init khook engine */
+    if ( (ret = khook_init()) < 0 )
+    {
+        return ret;
+    }
+
+    /* init netlink */
     // if ( netlink_comm_init < 0 )
     // {
     //     printh("Netlink_Comm Initialization Failed.\n");
     //     return -EINVAL;
     // }
-
-    /* get sys_call_table pointer */
-    p_sys_call_table = (void **) kallsyms_lookup_name("sys_call_table");
-    if (!p_sys_call_table)
-    {
-        printh("Cannot find sys_call_table address.\n");
-        return -EINVAL;
-    }
-
-    set_addr_rw((unsigned long)p_sys_call_table);
-    ori_inotify_add_watch = p_sys_call_table[__NR_inotify_add_watch];
-    ori_inotify_rm_watch  = p_sys_call_table[__NR_inotify_rm_watch];
-    // ori_sys_execve        = p_sys_call_table[__NR_sys_execve];
-    // ori_sys_fork          = p_sys_call_table[__NR_sys_fork];
-    // ori_sys_exit_group    = p_sys_call_table[__NR_sys_exit_group];
-    p_sys_call_table[__NR_inotify_add_watch] = mod_inotify_add_watch;
-    p_sys_call_table[__NR_inotify_rm_watch]  = mod_inotify_rm_watch;
-    // p_sys_call_table[__NR_sys_execve]        = mod_sys_execve;
-    // p_sys_call_table[__NR_sys_fork]          = mod_sys_fork;
-    // p_sys_call_table[__NR_sys_exit_group]    = mod_sys_exit_group;
-    set_addr_ro((unsigned long)p_sys_call_table);
 
     printh("Inotify hook module init.\n");
     return 0;
@@ -213,16 +169,9 @@ static int __init inotify_hook_init(void)
 
 static void __exit inotify_hook_fini(void)
 {
-    set_addr_rw((unsigned long)p_sys_call_table);
-    p_sys_call_table[__NR_inotify_add_watch] = ori_inotify_add_watch;
-    p_sys_call_table[__NR_inotify_rm_watch]  = ori_inotify_rm_watch;
-    // p_sys_call_table[__NR_sys_execve]        = ori_sys_execve;
-    // p_sys_call_table[__NR_sys_fork]          = ori_sys_fork;
-    // p_sys_call_table[__NR_sys_exit_group]    = ori_sys_exit_group;
-    set_addr_ro((unsigned long)p_sys_call_table);
-
     // netlink_comm_exit();
     // pid_tree_clean();
+    khook_cleanup();
     printh("Inotify hook module exit.\n\n");
 }
 
