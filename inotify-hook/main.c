@@ -25,9 +25,9 @@ static long khook___x64_sys_inotify_add_watch(int fd, const char __user *pathnam
     struct path path;
     unsigned int flags = 0;
     char *pname = NULL;
-    char *precord = NULL;
+    // char *precord = NULL;
     char buf[PATH_MAX];
-    unsigned long usr_pid = current->pid;
+    unsigned long usr_pid = task_pid_nr(current); //current->pid;
     // struct radix_tree_root *wd_table;
 
     wd = KHOOK_ORIGIN(__x64_sys_inotify_add_watch, fd, pathname, mask);
@@ -36,8 +36,9 @@ static long khook___x64_sys_inotify_add_watch(int fd, const char __user *pathnam
         flags |= LOOKUP_FOLLOW;
     if (mask & IN_ONLYDIR)
         flags |= LOOKUP_DIRECTORY;
+    
+    if ( user_path_at(AT_FDCWD, pathname, flags, &path) == 0 )
     // if (wd>=0 && user_path_at(AT_FDCWD, pathname, flags, &path)==0)
-    if (wd>=0)
     {
         pname = dentry_path_raw(path.dentry, buf, PATH_MAX);
         path_put(&path);
@@ -51,8 +52,8 @@ static long khook___x64_sys_inotify_add_watch(int fd, const char __user *pathnam
         // }
         
         // //NOTE: insert inotify record for PID in PID_TABLE
-        precord = kmalloc(strlen(pname), GFP_ATOMIC);
-        strcpy(precord, pname);
+        // precord = kmalloc(strlen(pname), GFP_ATOMIC);
+        // strcpy(precord, pname);
         // if (fd>=1000) //at most 1000 fd allowed
         // {
         //     printh("PID %d: Record Up Limit Achieved.\n", usr_pid);
@@ -62,6 +63,8 @@ static long khook___x64_sys_inotify_add_watch(int fd, const char __user *pathnam
         //     radix_tree_insert(wd_table, wd*1000+fd, precord)
         // }
     }
+
+    printh("%d called add_watch\n", fd);
 
     return wd;
 }
