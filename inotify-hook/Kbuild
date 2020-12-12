@@ -5,7 +5,7 @@ $(MODNAME)-y += main.o
 #$(MODNAME)-y += netlink_comm.o
 
 ccflags-y   += -fno-stack-protector -fomit-frame-pointer
-ldflags-y   += -T$(src)/khook/engine.lds
+ldflags-y   += -T$(src)/khook/khook/engine.lds
 
 LDFLAGS := $(ldflags-y) # legacy
 KBUILD_CFLAGS := $(filter-out -pg,$(KBUILD_CFLAGS))

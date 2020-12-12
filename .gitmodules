@@ -1,0 +1,3 @@
+[submodule "inotify-hook/khook"]
+	path = inotify-hook/khook
+	url = https://github.com/VDM-Maintainer-Group/khook.git
