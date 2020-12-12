@@ -1,13 +1,19 @@
 # VDM Vscode Plugin
-* The efficient solution exists in `inotify_group` reverse lookup, however, there is no existing mechanism available.
-* So, I hook both the `add_watch` and `rm_watch` to maintain existing watcher list for each process.
-* Meanwhile, the `sys_execve`/`sys_fork`/`sys_exit_group` are all hooked to associate with inotify table, and two-level radix_tree is leveraged to maintain (PID,FD_WD) fast lookup table in kernel.
-* Netlink will response to request of PID from userspace in unicast (no encryption considered).
+- The efficient solution exists in `inotify_group` reverse lookup, however, there is no existing mechanism available.
+- So, I hook both the `add_watch` and `rm_watch` to maintain existing watcher list for each process.
+- To keep the kernel module clearness, the (PID, FD_WD) lookup table should be maintained in userspace.
+- Netlink will response to request of PID from userspace in unicast (no encryption considered for now).
+
+### Instruction
+- `cmake>=3.12.0` (if not satisfied, try `pip3 install -U cmake` to get the latest version)
 
 ### TODO
-* Fragment netlink sending in kernel, and finish corresponding receiving in usersapce.
-* Complete the de-facto vscode plugin.
-* add DKMS compiling.
+- Complete netlink comm between kernel module and daemon.
+- Complete inotify watch register function with keyword/PID.
+- Complete inotify information list maintain in userspace.
+- Add periodic garbage information collection based on alive process.
+- Add DKMS compiling.
+- Complete the de-facto vscode plugin.
 
 ### Reference
 1. https://security.stackexchange.com/questions/210897/why-is-there-a-need-to-modify-system-call-tables-in-linux
