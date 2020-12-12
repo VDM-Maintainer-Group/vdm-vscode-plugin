@@ -18,25 +18,25 @@
 
 struct radix_tree_root PID_TABLE;
 
-void set_addr_rw(const unsigned long);
-void set_addr_ro(const unsigned long);
+// void set_addr_rw(const unsigned long);
+// void set_addr_ro(const unsigned long);
 
-void set_addr_rw(const unsigned long addr)
-{
-    unsigned int level;
-    pte_t *pte;
+// void set_addr_rw(const unsigned long addr)
+// {
+//     unsigned int level;
+//     pte_t *pte;
 
-    pte = lookup_address(addr, &level);
-    if (pte->pte &~ _PAGE_RW)
-        pte->pte |= _PAGE_RW;
+//     pte = lookup_address(addr, &level);
+//     if (pte->pte &~ _PAGE_RW)
+//         pte->pte |= _PAGE_RW;
 
-    local_flush_tlb();
-}
+//     local_flush_tlb();
+// }
 
-void set_addr_ro(const unsigned long address){
-    unsigned int level;
-    pte_t *pte = lookup_address(address, &level);
-    pte->pte = pte->pte &~_PAGE_RW;
-}
+// void set_addr_ro(const unsigned long address){
+//     unsigned int level;
+//     pte_t *pte = lookup_address(address, &level);
+//     pte->pte = pte->pte &~_PAGE_RW;
+// }
 
 #endif

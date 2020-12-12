@@ -18,8 +18,10 @@ static int __init inotify_hook_init(void);
 static void __exit inotify_hook_fini(void);
 
 /*************************** INOTIFY SYSCALL HOOK ***************************/
-KHOOK_EXT(long, __x64_sys_inotify_add_watch, int, const char __user *, u32);
-static long khook___x64_sys_inotify_add_watch(int fd, const char __user *pathname, u32 mask)
+// regs->(di, si, dx, r10), reference: arch/x86/include/asm/syscall_wrapper.h#L125
+//asmlinkage long sys_inotify_add_watch(int fd, const char __user *path, u32 mask);
+KHOOK_EXT(long, __x64_sys_inotify_add_watch, const struct pt_regs *);
+static long khook___x64_sys_inotify_add_watch(const struct pt_regs *regs)
 {
     int wd;
     struct path path;
@@ -29,8 +31,12 @@ static long khook___x64_sys_inotify_add_watch(int fd, const char __user *pathnam
     char buf[PATH_MAX];
     unsigned long usr_pid = task_pid_nr(current); //current->pid;
     // struct radix_tree_root *wd_table;
+    // decode the registers
+    int fd = (int) regs->di;
+    const char __user *pathname = (char __user *) regs->si;
+    u32 mask = (u32) regs->dx;
 
-    wd = KHOOK_ORIGIN(__x64_sys_inotify_add_watch, fd, pathname, mask);
+    wd = KHOOK_ORIGIN(__x64_sys_inotify_add_watch, regs);
 
     if (!(mask & IN_DONT_FOLLOW))
         flags |= LOOKUP_FOLLOW;
@@ -69,14 +75,15 @@ static long khook___x64_sys_inotify_add_watch(int fd, const char __user *pathnam
     return wd;
 }
 
-KHOOK_EXT(long, __x64_sys_inotify_rm_watch, int, __s32);
-static long khook___x64_sys_inotify_rm_watch(int fd, __s32 wd)
+//asmlinkage long sys_inotify_rm_watch(int fd, __s32 wd);
+KHOOK_EXT(long, __x64_sys_inotify_rm_watch, const struct pt_regs *regs);
+static long khook___x64_sys_inotify_rm_watch(const struct pt_regs *regs)
 {
     int ret;
     // char *precord;
     // struct radix_tree_root *wd_table;
 
-    ret = KHOOK_ORIGIN(__x64_sys_inotify_rm_watch, fd, wd);
+    ret = KHOOK_ORIGIN(__x64_sys_inotify_rm_watch, regs);
 
     // wd_table = radix_tree_lookup(PID_TABLE, usr_pid);
     // if (wd_table==NULL)
