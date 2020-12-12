@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+'''
+1. change to C-version daemon
+2. register by a) PID or b) keyword in process command
+3. "remove" message may arrive before "add":
+    a) "remove" counts -1;
+    b) records remove once when "counter==0"
+'''
+
 ''' Userspace Inotify Lookup Daemon Program
 References:
     1. https://github.com/facebook/gnlpy

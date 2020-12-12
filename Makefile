@@ -1,10 +1,12 @@
 
-all:dependency build install
+all:build install
 
-dependency:
+build:build-krn build-usr
 
-build:
+build-krn:
 	$(MAKE) -C inotify-hook
+
+build-usr:
 
 install:
 	sudo cp -f inotify-hook/inotify_hook.ko /lib/modules/$(shell uname -r)/updates/inotify_hook.ko

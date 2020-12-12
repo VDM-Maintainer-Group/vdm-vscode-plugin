@@ -2,7 +2,7 @@ MODNAME      := inotify_hook
 
 obj-m        += $(MODNAME).o
 $(MODNAME)-y += main.o
-# netlink_comm.o
+#$(MODNAME)-y += netlink_comm.o
 
 ccflags-y   += -fno-stack-protector -fomit-frame-pointer
 ldflags-y   += -T$(src)/khook/engine.lds
