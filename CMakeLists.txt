@@ -28,7 +28,3 @@ INSTALL(TARGETS vdm-inotify-hook
 
 ## build userspace application
 add_executable(vscode_client vscode_client.c)
-
-
-#install:
-#	sudo cp -f inotify-hook/inotify_hook.ko /lib/modules/$(shell uname -r)/updates/inotify_hook.ko

@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.12) #for FindPython feature
 ##
-project(vdm-vscode-plugin VERSION 0.1)
+project(vdm-inotify-hook VERSION 0.1)
+set(KDIR "" CACHE STRING "/lib/modules/$(shell uname -r)/build")
+# set(INSTALL_DIRECTORY "lib/modules/`shell uname -r`/updates") #inotify_hook.ko
 
 
 ## TODO: https://musteresel.github.io/posts/2020/02/cmake-template-linux-kernel-module.html
