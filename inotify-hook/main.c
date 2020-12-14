@@ -30,14 +30,15 @@ static long MODIFY(inotify_add_watch)(const struct pt_regs *regs)
     unsigned int flags = 0;
     char *pname = NULL;
     char buf[PATH_MAX];
-    unsigned long usr_pid = task_pid_nr(current); //current->pid;
+    unsigned int usr_pid = task_pid_nr(current); //current->pid;
     // decode the registers
     int fd = (int) regs->di;
     const char __user *pathname = (char __user *) regs->si;
     u32 mask = (u32) regs->dx;
 
+    // do the original function
     wd = KHOOK_ORIGIN(ORIGIN(inotify_add_watch), regs);
-
+    // get the pathname
     if (!(mask & IN_DONT_FOLLOW))
         flags |= LOOKUP_FOLLOW;
     if (mask & IN_ONLYDIR)
@@ -46,9 +47,11 @@ static long MODIFY(inotify_add_watch)(const struct pt_regs *regs)
     {
         pname = dentry_path_raw(path.dentry, buf, PATH_MAX);
         path_put(&path);
-        printh("PID %ld add: %s\n", usr_pid, pname);
+        printh("%s, PID %d add (%d,%d): %s\n", current->comm, usr_pid, fd, wd, pname);
+        //current->comm (executable name, excluding path)
     }
 
+    //TODO: if pid or application name in interest list
     return wd;
 }
 
@@ -57,8 +60,12 @@ KHOOK_EXT(long, __x64_sys_inotify_rm_watch, const struct pt_regs *regs);
 static long khook___x64_sys_inotify_rm_watch(const struct pt_regs *regs)
 {
     int ret;
+    int fd = (int) regs->di;
+    u32 wd = (u32) regs->si;
 
     ret = KHOOK_ORIGIN(__x64_sys_inotify_rm_watch, regs);
+
+    printh("%s, PID %d remove (%d,%d)\n", current->comm, task_pid_nr(current), fd, wd);
 
     return ret;
 }

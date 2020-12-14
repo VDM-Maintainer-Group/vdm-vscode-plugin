@@ -8,9 +8,8 @@
 - `cmake>=3.12.0` (if not satisfied, try `pip3 install -U cmake` to get the latest version)
 
 ### TODO
-- Complete netlink comm between kernel module and daemon.
-- Complete inotify watch register function with keyword/PID.
-- Complete inotify information list maintain in userspace.
+- Verify the inotify mechanism (add/update/remove)
+- Complete netlink unicast between kernel module and daemon.
 - Add periodic garbage information collection based on alive process.
 - Add DKMS compiling.
 - Complete the de-facto vscode plugin.
