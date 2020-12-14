@@ -9,11 +9,15 @@
 #include <linux/types.h>
 #include <linux/version.h>
 #include "main.h"
-// #include "netlink_comm.h"
+#include "khook/khook/engine.c"
+#include "netlink_comm.h"
 
 /************************* PROTOTYPE DECLARATION *************************/
 static int __init inotify_hook_init(void);
 static void __exit inotify_hook_fini(void);
+
+/***************************** UTILITY FUNCTION *****************************/
+
 
 /*************************** INOTIFY SYSCALL HOOK ***************************/
 // regs->(di, si, dx, r10), reference: arch/x86/include/asm/syscall_wrapper.h#L125
@@ -59,59 +63,6 @@ static long khook___x64_sys_inotify_rm_watch(const struct pt_regs *regs)
     return ret;
 }
 
-/***************************** UTILITY FUNCTION *****************************/
-// static void pid_tree_add(unsigned long pid)
-// {
-//     int error;
-//     struct radix_tree_root *wd_table = kmalloc(sizeof(struct radix_tree_root), GFP_KERNEL);
-
-//     INIT_RADIX_TREE(wd_table, GFP_ATOMIC);
-//     error = radix_tree_insert(PID_TABLE, pid, (void *)wd_table);
-//     if (error < 0)
-//     {
-//         printh("PID %d: Record Allocation Failed.\n", pid);
-//     }
-// }
-// static void pid_tree_remove_item(struct radix_tree_root *item)
-// {
-//     struct radix_tree_iter iter;
-//     void **slot;
-
-//     radix_tree_for_each_slot(slot, item, &iter, 0){
-//         void *t = radix_tree_deref_slot(slot);
-//         if (!radix_tree_exception(t))
-//             kfree(t);
-//         radix_tree_iter_delete(PID_TABLE, &iter, slot);
-//     }
-//     radix_tree_delete(PID_TABLE, pid);
-//     kfree(wd_table);
-// }
-// static void pid_tree_remove(unsigned long pid)
-// {
-//     struct radix_tree_root *wd_table;
-
-//     wd_table = (struct radix_tree_root *) radix_tree_lookup(PID_TABLE, pid);
-//     if (wd_table==NULL)
-//     {
-//         return;
-//     }
-//     else{
-//         pid_tree_remove_item(wd_table);
-//     }
-// }
-// static void pid_tree_clean(void)
-// {
-//     struct radix_tree_iter iter;
-//     void **slot;
-
-//     radix_tree_for_each_slot(slot, PID_TABLE, &iter, 0){
-//         void *item = radix_tree_deref_slot(slot);
-//         if (!radix_tree_exception(item))
-//             pid_tree_remove_item(item);
-//         radix_tree_iter_delete(PID_TABLE, &iter, slot);
-//     }
-// }
-
 /****************************** MAIN_ENTRY ******************************/
 static int __init inotify_hook_init(void)
 {
@@ -137,7 +88,6 @@ static int __init inotify_hook_init(void)
 static void __exit inotify_hook_fini(void)
 {
     // netlink_comm_exit();
-    // pid_tree_clean();
     khook_cleanup();
     printh("Inotify hook module exit.\n\n");
 }

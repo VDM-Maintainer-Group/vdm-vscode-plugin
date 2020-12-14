@@ -11,8 +11,6 @@
 
 #define NETLINK_USER 31
 
-struct sock *nl_sock;
-
 int netlink_comm_init(void);
 void netlink_comm_exit(void);
 
