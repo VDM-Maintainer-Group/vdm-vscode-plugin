@@ -27,4 +27,4 @@ INSTALL(TARGETS vdm-inotify-hook
 
 
 ## build userspace application
-add_executable(vscode_client vscode_client.c)
+add_executable(vscode-client vscode_client.c)
