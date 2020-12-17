@@ -20,8 +20,8 @@ static void __exit inotify_hook_fini(void);
 
 
 /*************************** INOTIFY SYSCALL HOOK ***************************/
-// regs->(di, si, dx, r10), reference: arch/x86/include/asm/syscall_wrapper.h#L125
-//asmlinkage long sys_inotify_add_watch(int fd, const char __user *path, u32 mask);
+//regs->(di, si, dx, r10), reference: arch/x86/include/asm/syscall_wrapper.h#L125
+//SYSCALL_DEFINE3(inotify_add_watch, int, fd, const char __user *, pathname, u32, mask)
 KHOOK_EXT(long, ORIGIN(inotify_add_watch), const struct pt_regs *);
 static long MODIFY(inotify_add_watch)(const struct pt_regs *regs)
 {
@@ -55,17 +55,33 @@ static long MODIFY(inotify_add_watch)(const struct pt_regs *regs)
     return wd;
 }
 
-//asmlinkage long sys_inotify_rm_watch(int fd, __s32 wd);
-KHOOK_EXT(long, __x64_sys_inotify_rm_watch, const struct pt_regs *regs);
-static long khook___x64_sys_inotify_rm_watch(const struct pt_regs *regs)
+//SYSCALL_DEFINE2(inotify_rm_watch, int, fd, __s32, wd)
+KHOOK_EXT(long, ORIGIN(inotify_rm_watch), const struct pt_regs *regs);
+static long MODIFY(inotify_rm_watch)(const struct pt_regs *regs)
 {
     int ret;
+    // decode the registers
     int fd = (int) regs->di;
     u32 wd = (u32) regs->si;
 
-    ret = KHOOK_ORIGIN(__x64_sys_inotify_rm_watch, regs);
+    ret = KHOOK_ORIGIN(ORIGIN(inotify_rm_watch), regs);
 
     printh("%s, PID %d remove (%d,%d)\n", current->comm, task_pid_nr(current), fd, wd);
+
+    return ret;
+}
+
+//SYSCALL_DEFINE1(exit_group, int, error_code)
+KHOOK_EXT(long, ORIGIN(exit_group), const struct pt_regs *regs);
+static long MODIFY(exit_group)(const struct pt_regs *regs)
+{
+    int ret;
+    // decode the registers
+    int error_code = (int) regs->di;
+
+    ret = KHOOK_ORIGIN(ORIGIN(exit_group), regs);
+
+    printh("%s, PID %d exit with code:%d\n", current->comm, task_pid_nr(current), error_code);
 
     return ret;
 }
