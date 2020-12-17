@@ -13,7 +13,7 @@
 #define KERN_LOG KERN_NOTICE "[inotify_hook]"
 #define printh(...) printk(KERN_LOG __VA_ARGS__)
 
-#ifdef CONFIG_X86
+#ifdef CONFIG_X86_64
 #define ORIGIN(FUNC) __x64_sys_##FUNC
 #define MODIFY(FUNC) khook___x64_sys_##FUNC
 #else
