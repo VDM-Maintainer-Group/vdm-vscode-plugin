@@ -14,6 +14,9 @@
 - Add DKMS compiling.
 - Complete the de-facto vscode plugin.
 
+### NOTES
+- editors using inotify: `code`, `Typora`, `gedit`, etc.
+
 ### Reference
 1. https://security.stackexchange.com/questions/210897/why-is-there-a-need-to-modify-system-call-tables-in-linux
 2. https://stackoverflow.com/questions/2103315/linux-kernel-system-call-hooking-example
