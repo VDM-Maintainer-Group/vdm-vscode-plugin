@@ -97,6 +97,7 @@ static void comm_list_exit(void)
     spin_lock(&comm_list.comm_lock);
     list_for_each_entry_safe(pos, tmp, &comm_list.head, list)
     {
+        //FIXME: NULL pointer deference here
         kfree(pos->name);
         list_del_init(&pos->list);
     }
