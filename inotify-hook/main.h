@@ -7,6 +7,8 @@
 #include <linux/syscalls.h>
 #include <linux/namei.h>
 #include <linux/string.h>
+#include <linux/types.h>
+#include <linux/list.h>
 
 #define IN_ONLYDIR		    0x01000000	/* only watch the path if it is a directory */
 #define IN_DONT_FOLLOW		0x02000000	/* don't follow a sym link */
@@ -19,5 +21,11 @@
 #else
 #error Target CPU architecture is NOT supported !!!
 #endif
+
+struct comm_list_t
+{
+    char *name;
+    struct list_head list;
+};
 
 #endif

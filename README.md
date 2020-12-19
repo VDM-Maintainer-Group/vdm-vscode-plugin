@@ -1,6 +1,6 @@
 # VDM VScode Plugin
 - The efficient solution exists in `inotify_group` reverse lookup, however, there is no existing mechanism available.
-- So, I hook both the `inotify_add_watch` and `inotify_rm_watch` to maintain existing watcher list for each process. For unexpected process exit, `exit_group` is also hooked for garbage collection.
+- So, I hook both the `inotify_add_watch` and `inotify_rm_watch` to maintain existing watcher list for each process.
 - Netlink will response to request of `comm_name` from userspace in unicast (no encryption considered for now).
 
 ### Instruction
@@ -8,10 +8,10 @@
 
 ### TODO
 - ~~Verify the inotify mechanism (add/update/remove)~~
-- Add *global linked-list* for interested **common_name** register
+- Add *global linked-list* for interested **comm_name** register
     - `int comm_name_list_add(const char *)`
     - `void comm_name_list_rm(const char *)`
-    - `bool comm_name_list_lookup(const char *)`
+    - `bool comm_name_list_find(const char *)`
 - Complete **comm_name_list** call in three hooked syscalls (init with `code`)
 - Add *in-kernel radix tree* for inode recording
     - `(char[MAX_NAME_LEN]) comm_name -> (pid_tree *) -> (struct inode_record *)(int fd, int wd, char *pathname)`

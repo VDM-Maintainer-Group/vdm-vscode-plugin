@@ -6,18 +6,62 @@
 */
 #include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/types.h>
 #include <linux/version.h>
 #include "main.h"
 #include "khook/khook/engine.c"
 #include "netlink_comm.h"
 
 /************************* PROTOTYPE DECLARATION *************************/
+LIST_HEAD(comm_list);
 static int __init inotify_hook_init(void);
 static void __exit inotify_hook_fini(void);
 
 /***************************** UTILITY FUNCTION *****************************/
+//TODO: rm; reset; spin_lock protection;
+static int comm_list_find(const char *name)
+{
+    struct comm_list_t *pos;
 
+    list_for_each_entry(pos, &comm_list, list)
+    {
+        if (strcmp(name, pos->name))
+        {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+static int comm_list_add(const char *name)
+{
+    char *precord = NULL;
+    struct comm_list_t item;
+
+    if (comm_list_find(name))
+    {
+        goto out;
+    }
+
+    precord = kmalloc(strlen(name), GFP_ATOMIC);
+    if (unlikely(!precord))
+    {
+        return -ENOMEM;
+    }
+    strcpy(precord, name);
+    
+    item.name = precord;
+    INIT_LIST_HEAD(&item.list);
+    list_add(&item.list, &comm_list);
+    printh("comm_list add \"%s\"\n", name);
+out:
+    return 0;
+}
+
+static void comm_list_rm(const char *name)
+{
+    return;
+}
 
 /*************************** INOTIFY SYSCALL HOOK ***************************/
 //regs->(di, si, dx, r10), reference: arch/x86/include/asm/syscall_wrapper.h#L125
@@ -70,21 +114,6 @@ static long MODIFY(inotify_rm_watch)(const struct pt_regs *regs)
     return ret;
 }
 
-//SYSCALL_DEFINE1(exit_group, int, error_code)
-KHOOK_EXT(long, ORIGIN(exit_group), const struct pt_regs *regs);
-static long MODIFY(exit_group)(const struct pt_regs *regs)
-{
-    int ret;
-    // decode the registers
-    int error_code = (int) regs->di;
-
-    ret = KHOOK_ORIGIN(ORIGIN(exit_group), regs);
-
-    printh("%s, PID %d exit with code:%d\n", current->comm, task_pid_nr(current), error_code);
-
-    return ret;
-}
-
 /****************************** MAIN_ENTRY ******************************/
 static int __init inotify_hook_init(void)
 {
@@ -104,6 +133,7 @@ static int __init inotify_hook_init(void)
     // }
 
     printh("Inotify hook module init.\n");
+    comm_list_add("code");
     return 0;
 }
 
