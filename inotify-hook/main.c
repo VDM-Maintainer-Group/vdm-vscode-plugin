@@ -12,31 +12,34 @@
 #include "netlink_comm.h"
 
 /************************* PROTOTYPE DECLARATION *************************/
-LIST_HEAD(comm_list);
+static struct comm_list_t comm_list;
 static int __init inotify_hook_init(void);
 static void __exit inotify_hook_fini(void);
 
 /***************************** UTILITY FUNCTION *****************************/
-//TODO: rm; reset; spin_lock protection;
 static int comm_list_find(const char *name)
 {
-    struct comm_list_t *pos;
+    int ret = 0;
+    struct comm_list_item *pos;
 
-    list_for_each_entry(pos, &comm_list, list)
+    spin_lock(&comm_list.comm_lock);
+    list_for_each_entry(pos, &comm_list.head, list)
     {
         if (strcmp(name, pos->name))
         {
-            return 1;
+            ret = 1;
+            break;
         }
     }
+    spin_unlock(&comm_list.comm_lock);
 
-    return 0;
+    return ret;
 }
 
 static int comm_list_add(const char *name)
 {
     char *precord = NULL;
-    struct comm_list_t item;
+    struct comm_list_item item;
 
     if (comm_list_find(name))
     {
@@ -49,10 +52,12 @@ static int comm_list_add(const char *name)
         return -ENOMEM;
     }
     strcpy(precord, name);
-    
     item.name = precord;
     INIT_LIST_HEAD(&item.list);
-    list_add(&item.list, &comm_list);
+
+    spin_lock(&comm_list.comm_lock);
+    list_add(&item.list, &comm_list.head);
+    spin_unlock(&comm_list.comm_lock);
     printh("comm_list add \"%s\"\n", name);
 out:
     return 0;
@@ -60,6 +65,43 @@ out:
 
 static void comm_list_rm(const char *name)
 {
+    struct comm_list_item *pos;
+
+    spin_lock(&comm_list.comm_lock);
+    list_for_each_entry(pos, &comm_list.head, list)
+    {
+        if (strcmp(name, pos->name))
+        {
+            kfree(pos->name);
+            list_del_init(&pos->list);
+            break;
+        }
+    }
+    spin_unlock(&comm_list.comm_lock);
+
+    return;
+}
+
+static void comm_list_init(void)
+{
+    spin_lock_init(&comm_list.comm_lock);
+    INIT_LIST_HEAD(&comm_list.head);
+    comm_list_add("code"); //to be removed
+    return;
+}
+
+static void comm_list_exit(void)
+{
+    struct comm_list_item *pos=NULL, *tmp=NULL;
+
+    spin_lock(&comm_list.comm_lock);
+    list_for_each_entry_safe(pos, tmp, &comm_list.head, list)
+    {
+        kfree(pos->name);
+        list_del_init(&pos->list);
+    }
+    spin_unlock(&comm_list.comm_lock);
+
     return;
 }
 
@@ -119,6 +161,9 @@ static int __init inotify_hook_init(void)
 {
     int ret = 0;
 
+    /* init data structure */
+    comm_list_init();
+
     /* init khook engine */
     if ( (ret = khook_init()) < 0 )
     {
@@ -133,7 +178,6 @@ static int __init inotify_hook_init(void)
     // }
 
     printh("Inotify hook module init.\n");
-    comm_list_add("code");
     return 0;
 }
 
@@ -141,6 +185,7 @@ static void __exit inotify_hook_fini(void)
 {
     // netlink_comm_exit();
     khook_cleanup();
+    comm_list_exit();
     printh("Inotify hook module exit.\n\n");
 }
 

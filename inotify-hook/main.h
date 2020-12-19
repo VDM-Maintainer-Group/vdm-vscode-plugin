@@ -8,7 +8,9 @@
 #include <linux/namei.h>
 #include <linux/string.h>
 #include <linux/types.h>
+//headers for utility functions
 #include <linux/list.h>
+#include <linux/spinlock.h>
 
 #define IN_ONLYDIR		    0x01000000	/* only watch the path if it is a directory */
 #define IN_DONT_FOLLOW		0x02000000	/* don't follow a sym link */
@@ -23,6 +25,12 @@
 #endif
 
 struct comm_list_t
+{
+    spinlock_t comm_lock;
+    struct list_head head;
+};
+
+struct comm_list_item
 {
     char *name;
     struct list_head list;
