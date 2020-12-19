@@ -48,7 +48,6 @@ static long MODIFY(inotify_add_watch)(const struct pt_regs *regs)
         pname = dentry_path_raw(path.dentry, buf, PATH_MAX);
         path_put(&path);
         printh("%s, PID %d add (%d,%d): %s\n", current->comm, usr_pid, fd, wd, pname);
-        //current->comm (executable name, excluding path)
     }
 
     //TODO: if pid or application name in interest list

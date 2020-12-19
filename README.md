@@ -1,8 +1,7 @@
-# VDM Vscode Plugin
+# VDM VScode Plugin
 - The efficient solution exists in `inotify_group` reverse lookup, however, there is no existing mechanism available.
-- So, I hook both the `add_watch` and `rm_watch` to maintain existing watcher list for each process.
-- To keep the kernel module clearness, the (PID, FD_WD) lookup table should be maintained in userspace.
-- Netlink will response to request of PID from userspace in unicast (no encryption considered for now).
+- So, I hook both the `inotify_add_watch` and `inotify_rm_watch` to maintain existing watcher list for each process. For unexpected process exit, `exit_group` is also hooked for garbage collection.
+- Netlink will response to request of `comm_name` from userspace in unicast (no encryption considered for now).
 
 ### Instruction
 - `cmake>=3.12.0` (if not satisfied, try `pip3 install -U cmake` to get the latest version)
@@ -24,6 +23,7 @@
 - Add *serialization function* for `struct inode_record **`
 - Complete **radix_tree** modify in three hooked system syscalls
 - Add netlink unicast request-response model in the module
+    
     - > TODO
 - Complete *netlink function* call in the model
 - Complete netlink daemon
