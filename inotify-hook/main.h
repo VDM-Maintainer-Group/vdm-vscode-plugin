@@ -26,6 +26,7 @@
 
 struct comm_list_t
 {
+    u32 counter; //not used for now
     spinlock_t comm_lock;
     struct list_head head;
 };

@@ -12,8 +12,8 @@
     - `int comm_list_find(const char *)`
     - `int comm_list_add(const char *)`
     - `void comm_list_rm(const char *)`
-    - `void comm_list_init(void)`, `void comm_list_exit(void)`
-- Complete **comm_name_list** call in three hooked syscalls (init with `code`)
+    - `int comm_list_init(void)`, `void comm_list_exit(void)`
+- ~~Complete **comm_name_list** call in three hooked syscalls (init with `code`)~~
 - Add *in-kernel radix tree* for inode recording
     - `(char[MAX_NAME_LEN]) comm_name -> (pid_tree *) -> (struct inode_record *)(int fd, int wd, char *pathname)`
     - `int radix_tree_init()`, `void radix_tree_reset()`

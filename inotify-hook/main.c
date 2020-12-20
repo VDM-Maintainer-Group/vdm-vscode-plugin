@@ -16,7 +16,7 @@ static struct comm_list_t comm_list;
 static int __init inotify_hook_init(void);
 static void __exit inotify_hook_fini(void);
 
-/***************************** UTILITY FUNCTION *****************************/
+/********************** COMM_LIST UTILITY FUNCTION ***********************/
 static int comm_list_find(const char *name)
 {
     int ret = 0;
@@ -25,7 +25,7 @@ static int comm_list_find(const char *name)
     spin_lock(&comm_list.comm_lock);
     list_for_each_entry(item, &comm_list.head, node)
     {
-        if (strcmp(name, item->name))
+        if (strcmp(name, item->name)==0)
         {
             ret = 1;
             break;
@@ -74,7 +74,7 @@ static void comm_list_rm(const char *name)
     spin_lock(&comm_list.comm_lock);
     list_for_each_entry_safe(item, tmp, &comm_list.head, node)
     {
-        if (strcmp(name, item->name))
+        if (strcmp(name, item->name)==0)
         {
             kfree(item->name);
             list_del_init(&item->node);
@@ -87,12 +87,15 @@ static void comm_list_rm(const char *name)
     return;
 }
 
-static void comm_list_init(void)
+static int comm_list_init(void)
 {
+    int ret = 0;
+
     spin_lock_init(&comm_list.comm_lock);
     INIT_LIST_HEAD(&comm_list.head);
-    comm_list_add("code"); //to be removed
-    return;
+    ret = comm_list_add("code"); //to be removed
+    
+    return ret;
 }
 
 static void comm_list_exit(void)
@@ -110,6 +113,8 @@ static void comm_list_exit(void)
 
     return;
 }
+
+/********************** WATCHES_RT UTILITY FUNCTION ***********************/
 
 /*************************** INOTIFY SYSCALL HOOK ***************************/
 //regs->(di, si, dx, r10), reference: arch/x86/include/asm/syscall_wrapper.h#L125
@@ -135,14 +140,14 @@ static long MODIFY(inotify_add_watch)(const struct pt_regs *regs)
         flags |= LOOKUP_FOLLOW;
     if (mask & IN_ONLYDIR)
         flags |= LOOKUP_DIRECTORY;
-    if ( wd>=0 && user_path_at(AT_FDCWD, pathname, flags, &path)==0 )
+    if ( comm_list_find(current->comm) && (user_path_at(AT_FDCWD, pathname, flags, &path)==0) )
     {
         pname = dentry_path_raw(path.dentry, buf, PATH_MAX);
         path_put(&path);
         printh("%s, PID %d add (%d,%d): %s\n", current->comm, usr_pid, fd, wd, pname);
-    }
 
-    //TODO: if pid or application name in interest list
+        //TODO: insert into wathes_rt, if comm_name in comm_list
+    }
     return wd;
 }
 
@@ -157,7 +162,12 @@ static long MODIFY(inotify_rm_watch)(const struct pt_regs *regs)
 
     ret = KHOOK_ORIGIN(ORIGIN(inotify_rm_watch), regs);
 
-    printh("%s, PID %d remove (%d,%d)\n", current->comm, task_pid_nr(current), fd, wd);
+    if (comm_list_find(current->comm))
+    {
+        printh("%s, PID %d remove (%d,%d)\n", current->comm, task_pid_nr(current), fd, wd);
+
+        //TODO: remove from wathes_rt, if comm_name in comm_list
+    }
 
     return ret;
 }
@@ -168,7 +178,10 @@ static int __init inotify_hook_init(void)
     int ret = 0;
 
     /* init data structure */
-    comm_list_init();
+    if ( (ret=comm_list_init()) < 0 )
+    {
+        return ret;
+    }
 
     /* init khook engine */
     if ( (ret = khook_init()) < 0 )
