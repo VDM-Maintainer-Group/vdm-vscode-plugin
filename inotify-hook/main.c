@@ -20,12 +20,12 @@ static void __exit inotify_hook_fini(void);
 static int comm_list_find(const char *name)
 {
     int ret = 0;
-    struct comm_list_item *pos;
+    struct comm_list_item *item;
 
     spin_lock(&comm_list.comm_lock);
-    list_for_each_entry(pos, &comm_list.head, list)
+    list_for_each_entry(item, &comm_list.head, node)
     {
-        if (strcmp(name, pos->name))
+        if (strcmp(name, item->name))
         {
             ret = 1;
             break;
@@ -38,25 +38,29 @@ static int comm_list_find(const char *name)
 
 static int comm_list_add(const char *name)
 {
-    char *precord = NULL;
-    struct comm_list_item item;
+    struct comm_list_item *item;
 
     if (comm_list_find(name))
     {
         goto out;
     }
 
-    precord = kmalloc(strlen(name), GFP_ATOMIC);
-    if (unlikely(!precord))
+    item = kmalloc(sizeof(struct comm_list_item), GFP_ATOMIC);
+    if (unlikely(!item))
     {
         return -ENOMEM;
     }
-    strcpy(precord, name);
-    item.name = precord;
-    INIT_LIST_HEAD(&item.list);
+    item->name = kmalloc(strlen(name), GFP_ATOMIC);
+    if (unlikely(!item->name))
+    {
+        return -ENOMEM;
+    }
+
+    strcpy(item->name, name);
+    INIT_LIST_HEAD(&item->node);
 
     spin_lock(&comm_list.comm_lock);
-    list_add(&item.list, &comm_list.head);
+    list_add(&item->node, &comm_list.head);
     spin_unlock(&comm_list.comm_lock);
     printh("comm_list add \"%s\"\n", name);
 out:
@@ -65,15 +69,16 @@ out:
 
 static void comm_list_rm(const char *name)
 {
-    struct comm_list_item *pos;
+    struct comm_list_item *item=NULL, *tmp=NULL;
 
     spin_lock(&comm_list.comm_lock);
-    list_for_each_entry(pos, &comm_list.head, list)
+    list_for_each_entry_safe(item, tmp, &comm_list.head, node)
     {
-        if (strcmp(name, pos->name))
+        if (strcmp(name, item->name))
         {
-            kfree(pos->name);
-            list_del_init(&pos->list);
+            kfree(item->name);
+            list_del_init(&item->node);
+            kfree(item);
             break;
         }
     }
@@ -92,14 +97,14 @@ static void comm_list_init(void)
 
 static void comm_list_exit(void)
 {
-    struct comm_list_item *pos=NULL, *tmp=NULL;
+    struct comm_list_item *item=NULL, *tmp=NULL;
 
     spin_lock(&comm_list.comm_lock);
-    list_for_each_entry_safe(pos, tmp, &comm_list.head, list)
+    list_for_each_entry_safe(item, tmp, &comm_list.head, node)
     {
-        //FIXME: NULL pointer deference here
-        kfree(pos->name);
-        list_del_init(&pos->list);
+        kfree(item->name);
+        list_del_init(&item->node);
+        kfree(item);
     }
     spin_unlock(&comm_list.comm_lock);
 

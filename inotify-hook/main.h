@@ -33,7 +33,7 @@ struct comm_list_t
 struct comm_list_item
 {
     char *name;
-    struct list_head list;
+    struct list_head node;
 };
 
 #endif
