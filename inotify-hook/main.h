@@ -9,7 +9,9 @@
 #include <linux/string.h>
 #include <linux/types.h>
 //headers for utility functions
+#include <linux/idr.h>
 #include <linux/list.h>
+#include <linux/radix-tree.h>
 #include <linux/spinlock.h>
 
 #define IN_ONLYDIR		    0x01000000	/* only watch the path if it is a directory */
@@ -36,5 +38,12 @@ struct comm_list_item
     char *name;
     struct list_head node;
 };
+
+struct comm_record_t
+{
+    spin_lock lock;
+    struct idr idr; //idr->comm_name
+    struct radix_tree_root root; //idr->pid->(wd+fd*MAX_NUM_WATCH)->pathname
+}
 
 #endif

@@ -13,6 +13,7 @@
 
 /************************* PROTOTYPE DECLARATION *************************/
 static struct comm_list_t comm_list;
+static struct comm_record_t comm_record;
 static int __init inotify_hook_init(void);
 static void __exit inotify_hook_fini(void);
 
@@ -22,7 +23,7 @@ static int comm_list_find(const char *name)
     int ret = 0;
     struct comm_list_item *item;
 
-    spin_lock(&comm_list.comm_lock);
+    spin_lock(&comm_list.lock);
     list_for_each_entry(item, &comm_list.head, node)
     {
         if (strcmp(name, item->name)==0)
@@ -31,7 +32,7 @@ static int comm_list_find(const char *name)
             break;
         }
     }
-    spin_unlock(&comm_list.comm_lock);
+    spin_unlock(&comm_list.lock);
 
     return ret;
 }
@@ -59,9 +60,9 @@ static int comm_list_add(const char *name)
     strcpy(item->name, name);
     INIT_LIST_HEAD(&item->node);
 
-    spin_lock(&comm_list.comm_lock);
+    spin_lock(&comm_list.lock);
     list_add(&item->node, &comm_list.head);
-    spin_unlock(&comm_list.comm_lock);
+    spin_unlock(&comm_list.lock);
     printh("comm_list add \"%s\"\n", name);
 out:
     return 0;
@@ -71,7 +72,7 @@ static void comm_list_rm(const char *name)
 {
     struct comm_list_item *item=NULL, *tmp=NULL;
 
-    spin_lock(&comm_list.comm_lock);
+    spin_lock(&comm_list.lock);
     list_for_each_entry_safe(item, tmp, &comm_list.head, node)
     {
         if (strcmp(name, item->name)==0)
@@ -82,7 +83,7 @@ static void comm_list_rm(const char *name)
             break;
         }
     }
-    spin_unlock(&comm_list.comm_lock);
+    spin_unlock(&comm_list.lock);
 
     return;
 }
@@ -91,7 +92,7 @@ static int comm_list_init(void)
 {
     int ret = 0;
 
-    spin_lock_init(&comm_list.comm_lock);
+    spin_lock_init(&comm_list.lock);
     INIT_LIST_HEAD(&comm_list.head);
     ret = comm_list_add("code"); //to be removed
     
@@ -102,19 +103,46 @@ static void comm_list_exit(void)
 {
     struct comm_list_item *item=NULL, *tmp=NULL;
 
-    spin_lock(&comm_list.comm_lock);
+    spin_lock(&comm_list.lock);
     list_for_each_entry_safe(item, tmp, &comm_list.head, node)
     {
         kfree(item->name);
         list_del_init(&item->node);
         kfree(item);
     }
-    spin_unlock(&comm_list.comm_lock);
+    spin_unlock(&comm_list.lock);
 
     return;
 }
 
-/********************** WATCHES_RT UTILITY FUNCTION ***********************/
+/********************* COMM_RECORD UTILITY FUNCTION **********************/
+static int comm_record_insert(const char *name, unsigned int pid, int fd, u32 wd, char const *pname)
+{
+    //TODO:
+    return 0;
+}
+
+static void comm_record_remove(const char *name, unsigned int pid, int fd, u32 wd)
+{
+    //TODO:
+    return;
+}
+
+//TODO: radix tree dump for print
+
+static int comm_record_init(void)
+{
+    spin_lock_init(&comm_record.lock);
+    idr_init(&comm_record.idr);
+    INIT_RADIX_TREE(comm_record.root, GFP_ATOMIC);
+    return 0;
+}
+
+static void comm_record_exit(void)
+{
+    //TODO: delete the whole tree-of-tree
+    return;
+}
 
 /*************************** INOTIFY SYSCALL HOOK ***************************/
 //regs->(di, si, dx, r10), reference: arch/x86/include/asm/syscall_wrapper.h#L125
@@ -127,7 +155,6 @@ static long MODIFY(inotify_add_watch)(const struct pt_regs *regs)
     unsigned int flags = 0;
     char *pname = NULL;
     char buf[PATH_MAX];
-    unsigned int usr_pid = task_pid_nr(current); //current->pid;
     // decode the registers
     int fd = (int) regs->di;
     const char __user *pathname = (char __user *) regs->si;
@@ -140,13 +167,13 @@ static long MODIFY(inotify_add_watch)(const struct pt_regs *regs)
         flags |= LOOKUP_FOLLOW;
     if (mask & IN_ONLYDIR)
         flags |= LOOKUP_DIRECTORY;
-    if ( comm_list_find(current->comm) && (user_path_at(AT_FDCWD, pathname, flags, &path)==0) )
+    if ( wd>=0 && comm_list_find(current->comm) && (user_path_at(AT_FDCWD, pathname, flags, &path)==0) )
     {
         pname = dentry_path_raw(path.dentry, buf, PATH_MAX);
         path_put(&path);
-        printh("%s, PID %d add (%d,%d): %s\n", current->comm, usr_pid, fd, wd, pname);
-
-        //TODO: insert into wathes_rt, if comm_name in comm_list
+        // insert into comm_record
+        comm_record_insert(current->comm, task_pid_nr(current), fd, wd, pname);
+        printh("%s, PID %d add (%d,%d): %s\n", current->comm, task_pid_nr(current), fd, wd, pname);
     }
     return wd;
 }
@@ -164,9 +191,9 @@ static long MODIFY(inotify_rm_watch)(const struct pt_regs *regs)
 
     if (comm_list_find(current->comm))
     {
+        // remove from comm_record
+        comm_record_remove(current->comm, task_pid_nr(current), fd, wd);
         printh("%s, PID %d remove (%d,%d)\n", current->comm, task_pid_nr(current), fd, wd);
-
-        //TODO: remove from wathes_rt, if comm_name in comm_list
     }
 
     return ret;
