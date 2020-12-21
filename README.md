@@ -9,20 +9,12 @@
 ### TODO
 - ~~Verify the inotify mechanism (add/update/remove)~~
 - ~~Add *global linked-list* for interested **comm_name** register~~
-    - `int comm_list_find(const char *)`
-    - `int comm_list_add(const char *)`
-    - `void comm_list_rm(const char *)`
-    - `int comm_list_init(void)`, `void comm_list_exit(void)`
 - ~~Complete **comm_list** call in three hooked syscalls (init with `code`)~~
-- Add *in-kernel radix tree* for inode pathname recording
-    - `int comm_record_insert(const char *comm_name, unsigned int pid, int fd, u32 wd, const char *pathname)`
-    - `void comm_record_remove(const char *comm_name, unsigned int pid, int fd, u32 wd)`
-    - `(struct inode_record **) radix_tree_dump(const char *comm_name)`
-    - `int comm_record_init()`, `void comm_record_clean()`
+- ~~Add *in-kernel radix tree* for inode pathname recording~~
 - Add *serialization function* for `struct inode_record **`
 - Complete **comm_record** modify in three hooked system syscalls
 - Add netlink unicast request-response model in the module
-    
+  
     - > TODO
 - Complete *netlink function* call in the model
 - Complete netlink daemon

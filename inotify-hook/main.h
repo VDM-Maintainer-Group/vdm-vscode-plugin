@@ -9,7 +9,6 @@
 #include <linux/string.h>
 #include <linux/types.h>
 //headers for utility functions
-#include <linux/idr.h>
 #include <linux/list.h>
 #include <linux/radix-tree.h>
 #include <linux/spinlock.h>
@@ -29,21 +28,26 @@
 struct comm_list_t
 {
     u32 counter; //not used for now
-    spinlock_t comm_lock;
+    spinlock_t lock;
     struct list_head head;
-};
-
-struct comm_list_item
-{
-    char *name;
-    struct list_head node;
 };
 
 struct comm_record_t
 {
-    spin_lock lock;
-    struct idr idr; //idr->comm_name
-    struct radix_tree_root root; //idr->pid->(wd+fd*MAX_NUM_WATCH)->pathname
+    spinlock_t lock;
+    struct radix_tree_root pid_rt; //pid->(wd+fd*MAX_NUM_WATCH)->pathname
+}
+
+struct comm_list_item
+{
+    char *comm_name;
+    struct comm_record_t record;
+    struct list_head node;
+};
+
+inline unsigned long fd_wd_to_mark(u32 fd, u32 wd)
+{
+    return wd*1000+fd;
 }
 
 #endif
