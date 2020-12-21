@@ -10,16 +10,12 @@
 - ~~Verify the inotify mechanism (add/update/remove)~~
 - ~~Add *global linked-list* for interested **comm_name** register~~
 - ~~Complete **comm_list** call in three hooked syscalls (init with `code`)~~
-- ~~Add *in-kernel radix tree* for inode pathname recording~~
-- Add *serialization function* for `struct inode_record **`
-- Complete **comm_record** modify in three hooked system syscalls
+- ~~Add *in-kernel radix tree* **comm_record** for inode pathname recording~~
+- ~~Add *serialization function* for `struct inode_record **`~~
 - Add netlink unicast request-response model in the module
-  
-    - > TODO
 - Complete *netlink function* call in the model
-- Complete netlink daemon
+- Complete netlink user space daemon with API
 - Add DKMS compiling
-- Complete the de-facto vscode plugin
 
 ### NOTES
 - editors using inotify: `code`, `Typora`, `okular`, etc.

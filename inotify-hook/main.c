@@ -92,7 +92,31 @@ out:
     return;
 }
 
-//TODO: radix tree dump for print
+static char* comm_record_dump(struct comm_record_t *record)
+{
+    struct radix_tree_iter iter0, iter1;
+    void **slot0, **slot1;
+    char *result;
+
+    spin_lock(&record->lock);
+    radix_tree_for_each_slot(slot0, &record->pid_rt, &iter0, 0)
+    {
+        struct task_struct *_task = find_task_by_vpid(iter0.index);
+        struct radix_tree_root *p_fd_wd_rt = radix_tree_deref_slot(slot0);
+        if (likely(_task))
+        {
+            radix_tree_for_each_slot(slot1, p_fd_wd_rt, &iter1, 0)
+            {
+                //TODO: radix tree dump for print
+                // void *pathname = radix_tree_deref_slot(slot1);
+                // printh("%ld, %s\n", iter0.index, (char *)pathname);
+            }
+        } //else remove from pid_rt
+    }
+    spin_unlock(&record->lock);
+
+    return result;
+}
 
 static void comm_record_init(struct comm_record_t *record)
 {
@@ -115,6 +139,7 @@ static void comm_record_cleanup(struct comm_record_t *record)
             radix_tree_for_each_slot(slot1, p_fd_wd_rt, &iter1, 0)
             {
                 void *pathname = radix_tree_deref_slot(slot1);
+                // printh("%ld, %s\n", iter0.index, (char *)pathname);
                 if (!radix_tree_exception(pathname)) {kfree(pathname);}
                 radix_tree_iter_delete(p_fd_wd_rt, &iter1, slot1);
             }
@@ -268,7 +293,7 @@ static long MODIFY(inotify_add_watch)(const struct pt_regs *regs)
         }
         strcpy(precord, pname); //"pname" points to "buf[PATH_MAX]"
         comm_record_insert(&item->record, task_pid_nr(current), fd, wd, precord);
-        printh("%s, PID %d add (%d,%d): %s\n", current->comm, task_pid_nr(current), fd, wd, precord);
+        // printh("%s, PID %d add (%d,%d): %s\n", current->comm, task_pid_nr(current), fd, wd, precord);
     }
     return wd;
 }
@@ -289,7 +314,7 @@ static long MODIFY(inotify_rm_watch)(const struct pt_regs *regs)
     {
         // remove from comm_record
         comm_record_remove(&item->record, task_pid_nr(current), fd, wd);
-        printh("%s, PID %d remove (%d,%d)\n", current->comm, task_pid_nr(current), fd, wd);
+        // printh("%s, PID %d remove (%d,%d)\n", current->comm, task_pid_nr(current), fd, wd);
     }
 
     return ret;
