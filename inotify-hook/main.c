@@ -20,31 +20,31 @@ static void __exit inotify_hook_fini(void);
 static int comm_record_insert(struct comm_record_t *record, unsigned long pid, int fd, u32 wd, char * const pname)
 {
     int ret;
-    struct radix_tree_root *fd_wd_rt;
+    struct radix_tree_root *p_fd_wd_rt;
 
-    fd_wd_rt = radix_tree_lookup(record->pid_rt, pid);
-    if (!fd_wd_rt)
+    p_fd_wd_rt = radix_tree_lookup(&record->pid_rt, pid);
+    if (!p_fd_wd_rt)
     {
-        fd_wd_rt = kmalloc(sizeof(struct radix_tree_root), GFP_KERNEL);
-        if (unlikely(!fd_wd_rt))
+        p_fd_wd_rt = kmalloc(sizeof(struct radix_tree_root), GFP_KERNEL);
+        if (unlikely(!p_fd_wd_rt))
         {
             return -ENOMEM;
         }
-        INIT_RADIX_TREE((*fd_wd_rt), GFP_ATOMIC);
+        INIT_RADIX_TREE(p_fd_wd_rt, GFP_ATOMIC);
 
         spin_lock(&record->lock);
-        ret = radix_tree_insert(record->pid_rt, pid, fd_wd_rt)
+        ret = radix_tree_insert(&record->pid_rt, pid, p_fd_wd_rt);
         spin_unlock(&record->lock);
 
         if (unlikely(ret<0))
         {
-            printh("comm_record: pid_rt allocation failed for %d.\n", pid);
+            printh("comm_record: pid_rt allocation failed for %ld.\n", pid);
             return ret;
         }
     }
 
     spin_lock(&record->lock);
-    ret = radix_tree_insert(fd_wd_rt, fd_wd_to_mark(fd,wd), pname);
+    ret = radix_tree_insert(p_fd_wd_rt, fd_wd_to_mark(fd,wd), pname);
     spin_unlock(&record->lock);
     if (unlikely(ret<0))
     {
@@ -59,16 +59,16 @@ static void comm_record_remove(struct comm_record_t *record, unsigned long pid, 
 {
     int mark;
     char *pathname;
-    struct radix_tree_iter *iter, *fd_wd_rt;
+    struct radix_tree_root *p_fd_wd_rt;
 
-    fd_wd_rt = (struct radix_tree_iter *) radix_tree_lookup(record->pid_rt, pid);
-    if (!fd_wd_rt)
+    p_fd_wd_rt = (struct radix_tree_root *) radix_tree_lookup(&record->pid_rt, pid);
+    if (!p_fd_wd_rt)
     {
         goto out;
     }
 
     mark = fd_wd_to_mark(fd,wd);
-    pathname = (char *) radix_tree_lookup(fd_wd_rt, mark);
+    pathname = (char *) radix_tree_lookup(p_fd_wd_rt, mark);
     if (!pathname)
     {
         goto out;
@@ -76,14 +76,14 @@ static void comm_record_remove(struct comm_record_t *record, unsigned long pid, 
 
     spin_lock(&record->lock);
     {
-        // free record fd_wd_rt
+        // free record of fd_wd_rt
         kfree(pathname);
-        radix_tree_delete(fd_wd_rt, mark);
+        radix_tree_delete(p_fd_wd_rt, mark);
         // free record of pid_rt
-        if (radix_tree_empty(fd_wd_rt))
+        if (radix_tree_empty(p_fd_wd_rt))
         {
-            kfree(fd_wd_rt)
-            radix_tree_delete(record->pid_rt, pid);
+            kfree(p_fd_wd_rt);
+            radix_tree_delete(&record->pid_rt, pid);
         }
     }
     spin_unlock(&record->lock);
@@ -97,7 +97,7 @@ out:
 static void comm_record_init(struct comm_record_t *record)
 {
     spin_lock_init(&record->lock);
-    INIT_RADIX_TREE(record->pid_rt, GFP_ATOMIC);
+    INIT_RADIX_TREE(&record->pid_rt, GFP_ATOMIC);
     return;
 }
 
@@ -110,7 +110,7 @@ static void comm_record_cleanup(struct comm_record_t *record)
     radix_tree_for_each_slot(slot0, &record->pid_rt, &iter0, 0)
     {
         struct radix_tree_root *p_fd_wd_rt = radix_tree_deref_slot(slot0);
-        if (!radix_tree_exception(fd_wd_rt))
+        if (!radix_tree_exception(p_fd_wd_rt))
         {
             radix_tree_for_each_slot(slot1, p_fd_wd_rt, &iter1, 0)
             {
@@ -179,7 +179,7 @@ out:
 
 static void comm_list_rm(struct comm_list_item *item)
 {
-    assert_spin_locked(&comm_list->lock);
+    assert_spin_locked(&comm_list.lock);
 
     comm_record_cleanup(&item->record);
     kfree(item->comm_name);
@@ -267,7 +267,7 @@ static long MODIFY(inotify_add_watch)(const struct pt_regs *regs)
             return -ENOMEM;
         }
         strcpy(precord, pname); //"pname" points to "buf[PATH_MAX]"
-        comm_record_insert(item, task_pid_nr(current), fd, wd, precord);
+        comm_record_insert(&item->record, task_pid_nr(current), fd, wd, precord);
         printh("%s, PID %d add (%d,%d): %s\n", current->comm, task_pid_nr(current), fd, wd, precord);
     }
     return wd;
@@ -288,7 +288,7 @@ static long MODIFY(inotify_rm_watch)(const struct pt_regs *regs)
     if ((item=comm_list_find(current->comm)))
     {
         // remove from comm_record
-        comm_record_remove(item, task_pid_nr(current), fd, wd);
+        comm_record_remove(&item->record, task_pid_nr(current), fd, wd);
         printh("%s, PID %d remove (%d,%d)\n", current->comm, task_pid_nr(current), fd, wd);
     }
 

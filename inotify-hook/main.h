@@ -36,7 +36,7 @@ struct comm_record_t
 {
     spinlock_t lock;
     struct radix_tree_root pid_rt; //pid->(wd+fd*MAX_NUM_WATCH)->pathname
-}
+};
 
 struct comm_list_item
 {
@@ -45,7 +45,7 @@ struct comm_list_item
     struct list_head node;
 };
 
-inline unsigned long fd_wd_to_mark(u32 fd, u32 wd)
+static inline unsigned long fd_wd_to_mark(u32 fd, u32 wd)
 {
     return wd*1000+fd;
 }
