@@ -2,6 +2,7 @@
 #define __HOOK_MAIN_H__
 
 #include <linux/sched.h>
+#include <linux/pid.h> //for pid_type
 #include <linux/uaccess.h>
 #include <linux/kallsyms.h>
 #include <linux/syscalls.h>
@@ -49,5 +50,9 @@ static inline unsigned long fd_wd_to_mark(u32 fd, u32 wd)
 {
     return wd*1000+fd;
 }
+
+extern int comm_list_add_by_name(const char *);
+extern void comm_list_rm_by_name(const char *);
+extern char* comm_record_dump_by_name(const char *);
 
 #endif

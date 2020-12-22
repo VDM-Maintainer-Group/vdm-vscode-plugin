@@ -13,6 +13,7 @@
 
 /************************* PROTOTYPE DECLARATION *************************/
 static struct comm_list_t comm_list;
+static struct comm_list_item * comm_list_find(const char *);
 static int __init inotify_hook_init(void);
 static void __exit inotify_hook_fini(void);
 
@@ -96,12 +97,12 @@ static char* comm_record_dump(struct comm_record_t *record)
 {
     struct radix_tree_iter iter0, iter1;
     void **slot0, **slot1;
-    char *result;
+    char *result = NULL;
 
     spin_lock(&record->lock);
     radix_tree_for_each_slot(slot0, &record->pid_rt, &iter0, 0)
     {
-        struct task_struct *_task = find_task_by_vpid(iter0.index);
+        struct task_struct *_task = pid_task(find_vpid(iter0.index), PIDTYPE_PID);//"find_task_by_vpid" not export
         struct radix_tree_root *p_fd_wd_rt = radix_tree_deref_slot(slot0);
         if (likely(_task))
         {
@@ -114,6 +115,24 @@ static char* comm_record_dump(struct comm_record_t *record)
         } //else remove from pid_rt
     }
     spin_unlock(&record->lock);
+
+    return result;
+}
+
+char* comm_record_dump_by_name(const char *name)
+{
+    char *result = NULL;
+    struct comm_list_item *item;
+
+    spin_lock(&comm_list.lock);
+    {
+        item = comm_list_find(name);
+        if(item)
+        {
+            result = comm_record_dump(&item->record);
+        }
+    }
+    spin_unlock(&comm_list.lock);
 
     return result;
 }
@@ -152,7 +171,7 @@ static void comm_record_cleanup(struct comm_record_t *record)
 }
 
 /********************** COMM_LIST UTILITY FUNCTION ***********************/
-struct comm_list_item * comm_list_find(const char *name)
+static struct comm_list_item * comm_list_find(const char *name)
 {
     struct comm_list_item *item=NULL, *result=NULL;
 
@@ -170,7 +189,7 @@ struct comm_list_item * comm_list_find(const char *name)
     return result;
 }
 
-static int comm_list_add(const char *name)
+int comm_list_add_by_name(const char *name)
 {
     struct comm_list_item *item;
     // check duplicated allocations
@@ -214,7 +233,7 @@ static void comm_list_rm(struct comm_list_item *item)
     return;
 }
 
-static void comm_list_rm_by_name(const char *name)
+void comm_list_rm_by_name(const char *name)
 {
     struct comm_list_item *item=NULL, *tmp=NULL;
 
@@ -238,7 +257,7 @@ static int comm_list_init(void)
 
     spin_lock_init(&comm_list.lock);
     INIT_LIST_HEAD(&comm_list.head);
-    ret = comm_list_add("code"); //to be removed
+    ret = comm_list_add_by_name("code"); //to be removed
     
     return ret;
 }
