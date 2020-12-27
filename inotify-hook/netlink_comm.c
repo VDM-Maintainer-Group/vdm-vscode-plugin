@@ -1,7 +1,7 @@
 /* Netlink Socket Communication Utility
 * References:
 * 1. https://stackoverflow.com/questions/3299386/how-to-use-netlink-socket-to-communicate-with-a-kernel-module
-* 2. https://medium.com/@mdlayher/linux-netlink-and-go-part-1-netlink-4781aaeeaca8
+* 2. https://elixir.bootlin.com/linux/latest/source/crypto/crypto_user_base.c#L224
 * 3. https://elixir.bootlin.com/linux/latest/source/lib/idr.c#L195
 */
 #include "netlink_comm.h"
