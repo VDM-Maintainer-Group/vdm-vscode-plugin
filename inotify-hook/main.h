@@ -26,6 +26,8 @@
 #error Target CPU architecture is NOT supported !!!
 #endif
 
+#define MAX_NUM_WATCH 1000
+
 struct comm_list_t
 {
     u32 counter; //not used for now
@@ -48,11 +50,11 @@ struct comm_list_item
 
 static inline unsigned long fd_wd_to_mark(u32 fd, u32 wd)
 {
-    return wd*1000+fd;
+    return wd*MAX_NUM_WATCH+fd;
 }
 
 extern int comm_list_add_by_name(const char *);
 extern void comm_list_rm_by_name(const char *);
-extern char* comm_record_dump_by_name(const char *);
+extern int comm_record_dump_by_name(const char *, int(*fn)(int pid, char *pathname, void *data), void *data);
 
 #endif

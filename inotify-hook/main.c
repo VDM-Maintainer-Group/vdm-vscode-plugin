@@ -93,11 +93,11 @@ out:
     return;
 }
 
-static char* comm_record_dump(struct comm_record_t *record)
+static int comm_record_dump(struct comm_record_t *record, int(*fn)(int pid, char *pathname, void *data), void *data)
 {
+    int ret = 0;
     struct radix_tree_iter iter0, iter1;
     void **slot0, **slot1;
-    char *result = NULL;
 
     spin_lock(&record->lock);
     radix_tree_for_each_slot(slot0, &record->pid_rt, &iter0, 0)
@@ -108,20 +108,23 @@ static char* comm_record_dump(struct comm_record_t *record)
         {
             radix_tree_for_each_slot(slot1, p_fd_wd_rt, &iter1, 0)
             {
-                //TODO: radix tree dump for print
-                // void *pathname = radix_tree_deref_slot(slot1);
-                // printh("%ld, %s\n", iter0.index, (char *)pathname);
+                char *pathname = radix_tree_deref_slot(slot1);
+                if ( (ret = fn(iter0.index, pathname, data)) < 0 )
+                {
+                    // printh("%ld, %s\n", iter0.index, (char *)pathname);
+                    goto out;
+                }
             }
         } //else remove from pid_rt
     }
+out:
     spin_unlock(&record->lock);
-
-    return result;
+    return ret;
 }
 
-char* comm_record_dump_by_name(const char *name)
+int comm_record_dump_by_name(const char *name, int(*fn)(int pid, char *pathname, void *data), void *data)
 {
-    char *result = NULL;
+    int ret = -1;
     struct comm_list_item *item;
 
     spin_lock(&comm_list.lock);
@@ -129,12 +132,12 @@ char* comm_record_dump_by_name(const char *name)
         item = comm_list_find(name);
         if(item)
         {
-            result = comm_record_dump(&item->record);
+            ret = comm_record_dump(&item->record, fn, data);
         }
     }
     spin_unlock(&comm_list.lock);
 
-    return result;
+    return ret;
 }
 
 static void comm_record_init(struct comm_record_t *record)
@@ -347,29 +350,29 @@ static int __init inotify_hook_init(void)
     /* init data structure */
     if ( (ret=comm_list_init()) < 0 )
     {
+        printh("Data Structure Initialization Failed.\n");
         return ret;
     }
-
     /* init khook engine */
     if ( (ret = khook_init()) < 0 )
     {
+        printh("khook Initialization Failed.\n");
         return ret;
     }
-
     /* init netlink */
-    // if ( netlink_comm_init < 0 )
-    // {
-    //     printh("Netlink_Comm Initialization Failed.\n");
-    //     return -EINVAL;
-    // }
-
+    if ( netlink_comm_init < 0 )
+    {
+        printh("Netlink Initialization Failed.\n");
+        return -EINVAL;
+    }
     printh("Inotify hook module init.\n");
+
     return 0;
 }
 
 static void __exit inotify_hook_fini(void)
 {
-    // netlink_comm_exit();
+    netlink_comm_exit();
     khook_cleanup();
     comm_list_exit();
     printh("Inotify hook module exit.\n\n");
