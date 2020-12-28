@@ -1,18 +1,13 @@
 #include <stdio.h>
+#include <unistd.h>
+#include <string.h>
 #include "inotify_lookup.h"
 
 /**
-1. compile as dll: exit if netlink could not establish;
-2. support register by a) PID or b) keyword in process command;
-3. "remove" message may arrive before "add":
-    a) "remove" counts -1;
-    b) records remove once when "counter==0"
 References:
-    1. https://github.com/facebook/gnlpy
-    2. https://github.com/est/pymnl/blob/master/pymnl/nlsocket.py 
+    1. https://github.com/est/pymnl/blob/master/pymnl/nlsocket.py
+    2. https://stackoverflow.com/questions/3299386/how-to-use-netlink-socket-to-communicate-with-a-kernel-module
 **/
-
-// static const unsigned int SOL_NETLINK = 270;
 
 int main(int argc, char const *argv[])
 {

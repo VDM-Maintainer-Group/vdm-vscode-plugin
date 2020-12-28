@@ -12,9 +12,9 @@
 - ~~Complete **comm_list** call in three hooked syscalls (init with `code`)~~
 - ~~Add *in-kernel radix tree* **comm_record** for inode pathname recording~~
 - ~~Add *serialization function* for `struct inode_record **`~~
-- Add netlink unicast request-response model in the module
-- Complete *netlink function* call in the model
-- Complete netlink user space daemon with API
+- ~~Add netlink unicast and dump callback in the module~~
+- ~~Complete *netlink function* call in the module~~
+- Complete netlink user space library with easy API
 - Add DKMS compiling
 
 ### NOTES
