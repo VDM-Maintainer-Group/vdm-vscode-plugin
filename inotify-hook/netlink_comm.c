@@ -15,11 +15,20 @@ static int append_message_cb(int pid, char *pathname, void *data)
     struct nlmsghdr *nlh;
     struct msg_buf_t *msg_buf = data;
 
-    sprintf(buf, "%d,%s\n", pid, pathname);
-    //TODO: manipulate with msg_buf
-    // nlh = nlmsg_put(msg_buf->skb, 0, seq, 0, msg_size, NLM_F_MULTI); 
-    // nlh = nlmsg_put(msg_buf->buf, 0, seq, NLMSG_DONE, msg_size, 0);
-    // strncpy(nlmsg_data(nlh), res_msg, msg_size);
+    // allocate buffer in skb
+    sprintf(buf, "%d,%s", pid, pathname);
+    nlh = nlmsg_put(msg_buf->skb, 0, msg_buf->seq, NLMSG_MIN_TYPE, strlen(buf), NLM_F_MULTI);
+    if (unlikely(!nlh))
+    {
+        ret = -EMSGSIZE;
+        goto out;
+    }
+    strncpy(nlmsg_data(nlh), buf, strlen(buf));
+
+    //finalize current nlh
+    nlmsg_end(msg_buf->skb, nlh);
+    msg_buf->seq ++;
+out:
     return ret;
 }
 
@@ -52,13 +61,25 @@ static void nl_recv_msg(struct sk_buff *skb)
         msg_buf.skb = nlmsg_new(NLMSG_DEFAULT_SIZE, 0);
         if (unlikely(!msg_buf.skb)) {
             printh("nl_recv_msg: skb allocation failed.\n");
-            return;
+            goto out;
         }
         NETLINK_CB(msg_buf.skb).dst_group = 0; /* not in mcast group */
-        // dump comm record
+        // dump record
         ret = comm_record_dump_by_name(req_msg->comm_name, append_message_cb, (void *) &msg_buf);
+        if (ret < 0)
+        {
+            goto out;
+        }
+        // finalize the dump
+        nlh = nlmsg_put(msg_buf.skb, 0, msg_buf.seq, NLMSG_DONE, strlen("done"), NLM_F_MULTI);
+        if (unlikely(!nlh))
+        {
+            ret = -EMSGSIZE;
+            goto out;
+        }
+        strncpy(nlmsg_data(nlh), "done", strlen("done"));
         // unicast the response
-        if ( ret < 0 || nlmsg_unicast(nl_sock, msg_buf.skb, usr_pid) < 0 )
+        if ( nlmsg_unicast(nl_sock, msg_buf.skb, usr_pid) < 0 )
         {
             printh("nl_recv_msg: message response to %d failed.\n", usr_pid);
         }
@@ -67,7 +88,7 @@ static void nl_recv_msg(struct sk_buff *skb)
     {
         printh("nl_recv_msg: bad request.\n");
     }
-
+out:
     return;
 }
 
