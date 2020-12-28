@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.12) #for FindPython feature
 project(vdm-vscode-plugin VERSION 0.1.0)
 set(CMAKE_CXX_STANDARD 14)
 # set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(INSTALL_DIRECTORY "vdm/capability/inotify_hook")
+set(INSTALL_DIRECTORY "vdm/capability")
 ## Find the library
 find_package(PkgConfig REQUIRED)
 
@@ -12,19 +12,17 @@ find_package(PkgConfig REQUIRED)
 add_subdirectory("inotify-hook")
 
 
-## build userspace daemon of inotify capability
-# build the executable daemon
+## build userspace library of inotify capability
 # file(GLOB DAEMON_API "./*.h")
-add_executable(vdm-inotify-daemon daemon.c)
-INSTALL(TARGETS vdm-inotify-daemon DESTINATION bin)
-# build the shared dynamic library
-add_library(vdm-inotify-hook SHARED daemon.c)
-set_target_properties(vdm-inotify-hook PROPERTIES
-                    PUBLIC_HEADER "daemon.h;")
-INSTALL(TARGETS vdm-inotify-hook
+add_library(vdm-inotify-lookup SHARED inotify_lookup.c)
+set_target_properties(vdm-inotify-lookup PROPERTIES
+                    PUBLIC_HEADER "inotify_lookup.h;")
+INSTALL(TARGETS vdm-inotify-lookup
         LIBRARY DESTINATION ${INSTALL_DIRECTORY}
         PUBLIC_HEADER DESTINATION ${INSTALL_DIRECTORY})
 
 
 ## build userspace application
-add_executable(vscode-client vscode_client.c)
+add_executable(vscode-plugin vscode_plugin.c)
+target_link_libraries(vscode-plugin PUBLIC vdm-inotify-lookup)
+INSTALL(TARGETS vscode-plugin DESTINATION bin)

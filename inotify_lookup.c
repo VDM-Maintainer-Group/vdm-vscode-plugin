@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "daemon.h"
+#include "inotify_lookup.h"
 
 /**
 1. compile as dll: exit if netlink could not establish;
