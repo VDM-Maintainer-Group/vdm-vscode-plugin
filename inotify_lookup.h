@@ -6,6 +6,7 @@
 
 #define NETLINK_USER 31
 #define MAX_NAME_LEN 1024
+#define PATH_MAX     4096
 #define INOTIFY_REQ_ADD  0x01
 #define INOTIFY_REQ_RM   0x02
 #define INOTIFY_REQ_DUMP 0x04
@@ -19,7 +20,7 @@ struct __attribute__((__packed__)) req_msg_t {
 // extern void inotify_destroy_netlink(void);
 
 extern int inotify_lookup_register(const char *);
-extern void inotify_lookup_remove(const char *);
+extern int inotify_lookup_unregister(const char *);
 extern char** inotify_lookup_dump(const char *);
 
 #endif

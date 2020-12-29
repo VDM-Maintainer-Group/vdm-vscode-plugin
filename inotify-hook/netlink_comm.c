@@ -47,6 +47,8 @@ static void nl_recv_msg(struct sk_buff *skb)
     usr_pid = nlh->nlmsg_pid;
     req_msg = (struct req_msg_t *)nlmsg_data(nlh);
 
+    printh("req_msg: %d, %s.\n", req_msg->op, req_msg->comm_name);
+
     if (req_msg->op & INOTIFY_REQ_ADD)
     {
         ret = comm_list_add_by_name(req_msg->comm_name);

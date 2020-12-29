@@ -250,6 +250,7 @@ void comm_list_rm_by_name(const char *name)
         }
     }
     spin_unlock(&comm_list.lock);
+    printh("comm_list rm \"%s\"\n", name);
 
     return;
 }
@@ -260,7 +261,7 @@ static int comm_list_init(void)
 
     spin_lock_init(&comm_list.lock);
     INIT_LIST_HEAD(&comm_list.head);
-    ret = comm_list_add_by_name("code"); //to be removed
+    // ret = comm_list_add_by_name("code"); //for test
     
     return ret;
 }
@@ -360,7 +361,7 @@ static int __init inotify_hook_init(void)
         return ret;
     }
     /* init netlink */
-    if ( netlink_comm_init < 0 )
+    if ( (ret = netlink_comm_init()) < 0 )
     {
         printh("Netlink Initialization Failed.\n");
         return -EINVAL;
