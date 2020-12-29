@@ -81,17 +81,24 @@ static int send_request(struct req_msg_t *p_req_msg)
 static int recv_message(struct msghdr *p_res_msg)
 {
     int ret = 0;
-    struct nlmsghdr *nlh = (struct nlmsghdr *) p_res_msg->msg_iov->iov_base;
+    struct nlmsghdr *nlh;
 
     if ((ret=recvmsg(sock_fd, p_res_msg, 0)) < 0)
     {
         goto out;
     }
 
+    nlh = (struct nlmsghdr *) p_res_msg->msg_iov->iov_base;
+    printf("done: %d, multi: %d, data:%s\n", nlh->nlmsg_type&NLMSG_DONE, nlh->nlmsg_flags&NLM_F_MULTI, NLMSG_DATA(nlh));
+
     if (!(nlh->nlmsg_type&NLMSG_DONE) && (nlh->nlmsg_flags&NLM_F_MULTI))
     {
         ret = 1; //fragmented message
-    }    
+    }
+    else
+    {
+        ret = 0; //done
+    }
 
 out:
     return ret;
@@ -148,6 +155,7 @@ char** inotify_lookup_dump(const char *name)
     int ret=0, pos=0;
     char **result = NULL;
     struct msghdr res_msg;
+    struct iovec res_iov;
     struct nlmsghdr *nlh;
     struct req_msg_t req_msg = {
         .op        = INOTIFY_REQ_DUMP
@@ -164,16 +172,30 @@ char** inotify_lookup_dump(const char *name)
         goto out;
     }
 
+    // allocate result buffer
     result = malloc(MAX_DUMP_LEN * sizeof(char *));
+    // init nlmsg struct for "nlh"
+    nlh = (struct nlmsghdr *) malloc(NLMSG_SPACE(PATH_MAX));
+    memset(nlh, 0, NLMSG_SPACE(PATH_MAX));
+    nlh->nlmsg_len = NLMSG_SPACE(PATH_MAX);
+    // init nlmsg struct for "msghdr"
+    res_iov.iov_base = (void *)nlh;
+    res_iov.iov_len  = nlh->nlmsg_len;
+    res_msg.msg_iov = &res_iov;
+    res_msg.msg_iovlen = 1;
+
+    // multipart message
     while (pos<MAX_DUMP_LEN && recv_message(&res_msg))
     {
-        nlh = (struct nlmsghdr *) res_msg.msg_iov->iov_base;
+        result[pos] = malloc(strlen(NLMSG_DATA(nlh)));
         strcpy(result[pos], NLMSG_DATA(nlh));
         pos ++;
-        printf("received: seq %d, data %s", nlh->nlmsg_seq,  NLMSG_DATA(nlh));
+
+        memset(nlh, 0, NLMSG_SPACE(PATH_MAX));
     }
 
 out:
     fini_socket();
+    free(nlh);
     return result;
 }

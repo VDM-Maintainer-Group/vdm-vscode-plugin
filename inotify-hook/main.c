@@ -127,15 +127,11 @@ int comm_record_dump_by_name(const char *name, int(*fn)(int pid, char *pathname,
     int ret = -1;
     struct comm_list_item *item;
 
-    spin_lock(&comm_list.lock);
+    item = comm_list_find(name);
+    if(item)
     {
-        item = comm_list_find(name);
-        if(item)
-        {
-            ret = comm_record_dump(&item->record, fn, data);
-        }
+        ret = comm_record_dump(&item->record, fn, data);
     }
-    spin_unlock(&comm_list.lock);
 
     return ret;
 }
