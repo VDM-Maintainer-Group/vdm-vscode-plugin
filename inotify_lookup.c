@@ -61,11 +61,39 @@ out:
     return sock_fd;
 }
 
+static void fini_socket(void)
+{
+    if (sock_fd > 0)
+    {
+        close(sock_fd);
+    }
+    sock_fd = 0;
+}
+
 static int send_request(struct req_msg_t *p_req_msg)
 {
     int ret;
     memcpy(NLMSG_DATA(iov.iov_base), p_req_msg, sizeof(struct req_msg_t));
     ret = sendmsg(sock_fd, &msg, 0);
+    return ret;
+}
+
+static int recv_message(struct msghdr *p_res_msg)
+{
+    int ret = 0;
+    struct nlmsghdr *nlh = (struct nlmsghdr *) p_res_msg->msg_iov->iov_base;
+
+    if ((ret=recvmsg(sock_fd, p_res_msg, 0)) < 0)
+    {
+        goto out;
+    }
+
+    if (!(nlh->nlmsg_type&NLMSG_DONE) && (nlh->nlmsg_flags&NLM_F_MULTI))
+    {
+        ret = 1; //fragmented message
+    }    
+
+out:
     return ret;
 }
 
@@ -77,7 +105,7 @@ int inotify_lookup_register(const char *name)
     };
     strcpy(req_msg.comm_name, name);
 
-    if ((ret=init_socket()) < 0)
+    if ((ret=init_socket()) <= 0)
     {
         goto out;
     }
@@ -88,6 +116,7 @@ int inotify_lookup_register(const char *name)
     }
 
 out:
+    fini_socket();
     return ret;
 }
 
@@ -99,7 +128,7 @@ int inotify_lookup_unregister(const char *name)
     };
     strcpy(req_msg.comm_name, name);
 
-    if ((ret=init_socket()) < 0)
+    if ((ret=init_socket()) <= 0)
     {
         goto out;
     }
@@ -110,20 +139,22 @@ int inotify_lookup_unregister(const char *name)
     }
 
 out:
+    fini_socket();
     return ret;
 }
 
 char** inotify_lookup_dump(const char *name)
 {
-    int ret = 0;
+    int ret=0, pos=0;
     char **result = NULL;
-    struct nlmsghdr *nlh = NULL;
+    struct msghdr res_msg;
+    struct nlmsghdr *nlh;
     struct req_msg_t req_msg = {
         .op        = INOTIFY_REQ_DUMP
     };
     strcpy(req_msg.comm_name, name);
 
-    if ((ret=init_socket()) < 0)
+    if ((ret=init_socket()) <= 0)
     {
         goto out;
     }
@@ -133,8 +164,16 @@ char** inotify_lookup_dump(const char *name)
         goto out;
     }
 
-    //TODO:
+    result = malloc(MAX_DUMP_LEN * sizeof(char *));
+    while (pos<MAX_DUMP_LEN && recv_message(&res_msg))
+    {
+        nlh = (struct nlmsghdr *) res_msg.msg_iov->iov_base;
+        strcpy(result[pos], NLMSG_DATA(nlh));
+        pos ++;
+        printf("received: seq %d, data %s", nlh->nlmsg_seq,  NLMSG_DATA(nlh));
+    }
 
 out:
+    fini_socket();
     return result;
 }
