@@ -89,7 +89,7 @@ static int recv_message(struct msghdr *p_res_msg)
     }
 
     nlh = (struct nlmsghdr *) p_res_msg->msg_iov->iov_base;
-    printf("done: %d, multi: %d, data:%s\n", nlh->nlmsg_type&NLMSG_DONE, nlh->nlmsg_flags&NLM_F_MULTI, NLMSG_DATA(nlh));
+    // printf("done: %d, multi: %d, data:%s\n", nlh->nlmsg_type&NLMSG_DONE, nlh->nlmsg_flags&NLM_F_MULTI, NLMSG_DATA(nlh));
 
     if (!(nlh->nlmsg_type&NLMSG_DONE) && (nlh->nlmsg_flags&NLM_F_MULTI))
     {

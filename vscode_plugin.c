@@ -11,7 +11,6 @@ int main(int argc, char const *argv[])
     ret = inotify_lookup_register("code");
     printf("add with ret code: %d.\n", ret);
 
-    sleep(3);
     result = inotify_lookup_dump("code");
     while (pos<MAX_DUMP_LEN && result[pos])
     {
@@ -19,8 +18,8 @@ int main(int argc, char const *argv[])
         pos ++;
     }
 
-    ret = inotify_lookup_unregister("code");
-    printf("rm with ret code: %d.\n", ret);
+    // ret = inotify_lookup_unregister("code");
+    // printf("rm with ret code: %d.\n", ret);
 
     return 0;
 }

@@ -15,6 +15,13 @@ int append_message_cb(int pid, char *pathname, void *data)
     struct nlmsghdr *nlh;
     struct msg_buf_t *msg_buf = data;
 
+    //init skb
+    msg_buf->skb = nlmsg_new(NLMSG_DEFAULT_SIZE, 0);
+    if (unlikely(!msg_buf->skb)) {
+        printh("nl_recv_msg: skb allocation failed.\n");
+        goto out;
+    }
+    NETLINK_CB(msg_buf->skb).dst_group = 0; /* not in mcast group */
     // allocate buffer in skb
     sprintf(buf, "%d,%s", pid, pathname);
     nlh = nlmsg_put(msg_buf->skb, 0, msg_buf->seq, NLMSG_MIN_TYPE, strlen(buf), NLM_F_MULTI);
@@ -25,9 +32,14 @@ int append_message_cb(int pid, char *pathname, void *data)
     }
     strncpy(nlmsg_data(nlh), buf, strlen(buf));
 
-    //finalize current nlh
+    //finalize current nlh and unicast
     nlmsg_end(msg_buf->skb, nlh);
     msg_buf->seq ++;
+    if ( (ret=nlmsg_unicast(nl_sock, msg_buf->skb, msg_buf->usr_pid)) < 0 )
+    {
+        printh("nl_recv_msg: message response to %d failed.\n", msg_buf->usr_pid);
+        goto out;
+    }
 out:
     return ret;
 }
@@ -37,14 +49,13 @@ static void nl_recv_msg(struct sk_buff *skb)
     int ret;
     struct nlmsghdr *nlh;
     //req msg
-    int usr_pid;
     struct req_msg_t *req_msg;
     //res msg
     struct msg_buf_t msg_buf;
 
     // decode req_msg from sk_buff
     nlh = (struct nlmsghdr *)skb->data;
-    usr_pid = nlh->nlmsg_pid;
+    msg_buf.usr_pid = nlh->nlmsg_pid;
     req_msg = (struct req_msg_t *)nlmsg_data(nlh);
 
     // printh("req_msg: %d, %s.\n", req_msg->op, req_msg->comm_name);
@@ -60,12 +71,7 @@ static void nl_recv_msg(struct sk_buff *skb)
     else if (req_msg->op & INOTIFY_REQ_DUMP)
     {
         // initial skb
-        msg_buf.skb = nlmsg_new(NLMSG_DEFAULT_SIZE, 0);
-        if (unlikely(!msg_buf.skb)) {
-            printh("nl_recv_msg: skb allocation failed.\n");
-            goto out;
-        }
-        NETLINK_CB(msg_buf.skb).dst_group = 0; /* not in mcast group */
+        
         // dump record
         ret = comm_record_dump_by_name(req_msg->comm_name, append_message_cb, (void *) &msg_buf);
         if (ret < 0)
@@ -73,6 +79,12 @@ static void nl_recv_msg(struct sk_buff *skb)
             goto out;
         }
         // finalize the dump
+        msg_buf.skb = nlmsg_new(NLMSG_DEFAULT_SIZE, 0);
+        if (unlikely(!msg_buf.skb)) {
+            printh("nl_recv_msg: skb allocation failed.\n");
+            goto out;
+        }
+        NETLINK_CB(msg_buf.skb).dst_group = 0; /* not in mcast group */
         nlh = nlmsg_put(msg_buf.skb, 0, msg_buf.seq, NLMSG_DONE, strlen("done"), NLM_F_MULTI);
         if (unlikely(!nlh))
         {
@@ -80,10 +92,11 @@ static void nl_recv_msg(struct sk_buff *skb)
             goto out;
         }
         strncpy(nlmsg_data(nlh), "done", strlen("done"));
+        nlmsg_end(msg_buf.skb, nlh);
         // unicast the response
-        if ( nlmsg_unicast(nl_sock, msg_buf.skb, usr_pid) < 0 )
+        if ( nlmsg_unicast(nl_sock, msg_buf.skb, msg_buf.usr_pid) < 0 )
         {
-            printh("nl_recv_msg: message response to %d failed.\n", usr_pid);
+            printh("nl_recv_msg: message response to %d failed.\n", msg_buf.usr_pid);
         }
     }
     else

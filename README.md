@@ -14,7 +14,7 @@
 - ~~Add *serialization function* for `struct inode_record **`~~
 - ~~Add netlink unicast and dump callback in the module~~
 - ~~Complete *netlink function* call in the module~~
-- Complete netlink user space library with easy API
+- ~~Complete netlink user space library with easy API~~
 - Add DKMS compiling
 
 ### NOTES

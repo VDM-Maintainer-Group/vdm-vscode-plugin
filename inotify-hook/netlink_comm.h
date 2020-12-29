@@ -22,6 +22,7 @@ struct __attribute__((__packed__)) req_msg_t {
 
 struct msg_buf_t {
     struct sk_buff *skb;
+    int usr_pid;
     int seq;
     char buf[PATH_MAX];
 };
