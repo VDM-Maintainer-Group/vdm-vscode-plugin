@@ -1,0 +1,28 @@
+{
+  "name": "vdm-vscode-plugin",
+  "version": "0.1.0",
+  "description": "vdm plugin for vscode.",
+  "keywords": [
+    "vscode"
+  ],
+  "author": "Mark Hong",
+  "license": "GPL-3.0",
+
+  "main": "libvscode-plugin.so",
+  "capability": [
+    "inotify-lookup"
+  ],
+  "scripts": {
+    "compile": "mkdir build; cd build; cmake .. && make",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+
+  "homepage": "https://github.com/VDM-Maintainer-Group/vdm-vscode-plugin#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VDM-Maintainer-Group/vdm-vscode-plugin.git"
+  },
+  "bugs": {
+    "url": "https://github.com/VDM-Maintainer-Group/vdm-vscode-plugin/issues"
+  }
+}

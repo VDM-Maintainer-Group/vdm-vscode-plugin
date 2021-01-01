@@ -10,7 +10,10 @@ find_package(VDMInotifyLookup CONFIG REQUIRED)
 
 
 # build userspace application
-add_executable(vscode-plugin vscode_plugin.c)
+add_library(vscode-plugin SHARED vscode_plugin.c)
 target_include_directories(vscode-plugin PUBLIC ${VDMInotifyLookup_INCLUDE_DIR})
 target_link_libraries(vscode-plugin PUBLIC ${VDMInotifyLookup_LIBRARY})
-# INSTALL(TARGETS vscode-plugin DESTINATION bin)
+
+add_executable(vscode-plugin-bin vscode_plugin.c)
+target_link_libraries(vscode-plugin-bin PUBLIC ${VDMInotifyLookup_LIBRARY})
+# INSTALL(TARGETS vscode-plugin-bin DESTINATION bin)
