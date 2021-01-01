@@ -2,27 +2,15 @@ cmake_minimum_required(VERSION 3.12) #for FindPython feature
 ##
 project(vdm-vscode-plugin VERSION 0.1.0)
 set(CMAKE_CXX_STANDARD 14)
-# set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(INSTALL_DIRECTORY "vdm/capability")
-## Find the library
-find_package(PkgConfig REQUIRED)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+# find_package(PkgConfig REQUIRED)
+# /usr/local/lib/cmake/vdm/capability/VDMInotifyLookupConfig.cmake
+find_package(VDMInotifyLookup CONFIG REQUIRED)
 
 
-## build kernel module of inotify capability
-add_subdirectory("inotify-hook")
-
-
-## build userspace library of inotify capability
-# file(GLOB DAEMON_API "./*.h")
-add_library(vdm-inotify-lookup SHARED inotify_lookup.c)
-set_target_properties(vdm-inotify-lookup PROPERTIES
-                    PUBLIC_HEADER "inotify_lookup.h;")
-INSTALL(TARGETS vdm-inotify-lookup
-        LIBRARY DESTINATION ${INSTALL_DIRECTORY}
-        PUBLIC_HEADER DESTINATION ${INSTALL_DIRECTORY})
-
-
-## build userspace application
+# build userspace application
 add_executable(vscode-plugin vscode_plugin.c)
-target_link_libraries(vscode-plugin PUBLIC vdm-inotify-lookup)
-INSTALL(TARGETS vscode-plugin DESTINATION bin)
+target_include_directories(vscode-plugin PUBLIC ${VDMInotifyLookup_INCLUDE_DIR})
+target_link_libraries(vscode-plugin PUBLIC ${VDMInotifyLookup_LIBRARY})
+# INSTALL(TARGETS vscode-plugin DESTINATION bin)
