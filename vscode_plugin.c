@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <vdm/interface/src_api.h>
+// #include <vdm/interface/src_api.h>
 #include <vdm/capability/inotify_lookup.h>
 
 /* Custom Interface */
@@ -51,7 +51,7 @@ int onResume(const char *stat_file)
         return -1;
     }
 
-    while ( fscanf(fd, "%s", &buf)==1 )
+    while ( fscanf(fd, "%s", buf)==1 )
     {
         sprintf(command, "code %s", buf);
         system(command);
@@ -72,6 +72,7 @@ int onStart()
     int ret;
     ret = inotify_lookup_register("code");
     return ret;
+}
 
 int onStop()
 {

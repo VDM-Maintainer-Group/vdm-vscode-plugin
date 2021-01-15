@@ -13,7 +13,7 @@
     "inotify-lookup"
   ],
   "scripts": {
-    "compile": "mkdir build; cd build; cmake .. && make",
+    "pre-install": "mkdir release; cd release; cmake .. && make",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
 
