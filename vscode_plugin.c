@@ -3,6 +3,7 @@
 #include <unistd.h>
 // #include <vdm/interface/src_api.h>
 #include <vdm/capability/inotify_lookup.h>
+#include "third-party/sds-master/sds.c"
 
 /* Custom Interface */
 int onTrigger(void *args)
@@ -13,9 +14,10 @@ int onTrigger(void *args)
 /* SRC API Interface */
 int onSave(const char *stat_file)
 {
-    int pos = 0;
+    int pos = 0, count = 0;
     char **result;
     FILE *fd;
+    sds line, *tokens;
 
     result = inotify_lookup_dump("code");
 
@@ -26,9 +28,16 @@ int onSave(const char *stat_file)
 
     while (pos<MAX_DUMP_LEN && result[pos])
     {
-        fprintf(fd, "%s\n", result[pos]);
+        // line = sdsnew(result[pos]);
         //
+        // tokens = sdssplitlen(line, sdslen(line), ",", 1, &count);
+        // printf("%d\n", count);
+        // // fprintf(fd, "%s\n", tokens[1]);
         printf("dump [%d]: %s\n", pos, result[pos]);
+        //
+        // sdsfreesplitres(tokens, count);
+        // sdsfree(line);
+        
         pos ++;
     }
     free(result);
