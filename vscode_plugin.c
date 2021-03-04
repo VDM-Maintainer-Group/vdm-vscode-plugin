@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <string.h>
 // #include <vdm/interface/src_api.h>
 #include <vdm/capability/inotify_lookup.h>
 
@@ -14,23 +13,20 @@ int onTrigger(void *args)
 /* SRC API Interface */
 int onSave(const char *stat_file)
 {
-    int pos;
+    int pos = 0;
     char **result;
     FILE *fd;
-    char *ref, *pid, *path;
+
+    result = inotify_lookup_dump("code");
 
     if ( (fd=fopen(stat_file, "w"))==NULL )
     {
         return -1;
     }
 
-    result = inotify_lookup_dump("code");
     while (pos<MAX_DUMP_LEN && result[pos])
     {
-        ref = result[pos];
-        pid = strtok(ref, ",");
-        path = strtok(NULL, ",");
-        fprintf(fd, "%s\n", path);
+        fprintf(fd, "%s\n", result[pos]);
         //
         printf("dump [%d]: %s\n", pos, result[pos]);
         pos ++;
@@ -88,8 +84,11 @@ int main(int argc, char const *argv[])
     ret = onStart();
     printf("add with ret code: %d.\n", ret);
 
-    ret = onStop();
-    printf("rm with ret code: %d.\n", ret);
+    ret = onSave("/tmp/vscode_dump.txt");
+    printf("save with ret code: %d.\n", ret);
+
+    // ret = onStop();
+    // printf("rm with ret code: %d.\n", ret);
 
     return ret;
 }
