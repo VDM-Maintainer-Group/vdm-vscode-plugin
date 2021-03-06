@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 // #include <vdm/interface/src_api.h>
 #include <vdm/capability/inotify_lookup.h>
@@ -17,7 +18,8 @@ int onSave(const char *stat_file)
     int pos = 0, count = 0;
     char **result;
     FILE *fd;
-    sds line, *tokens;
+    sds line;
+    sds *tokens;
 
     result = inotify_lookup_dump("code");
 
@@ -28,19 +30,19 @@ int onSave(const char *stat_file)
 
     while (pos<MAX_DUMP_LEN && result[pos])
     {
-        // line = sdsnew(result[pos]);
-        //
-        // tokens = sdssplitlen(line, sdslen(line), ",", 1, &count);
-        // printf("%d\n", count);
-        // // fprintf(fd, "%s\n", tokens[1]);
-        printf("dump [%d]: %s\n", pos, result[pos]);
-        //
-        // sdsfreesplitres(tokens, count);
+        line = sdsnew(result[pos]);
+        tokens = sdssplitlen(line, sdslen(line), ",", 1, &count);
+        if ( (count==2) && !(strstr(tokens[1], ".git")) && !(strstr(tokens[1], ".config")) )
+        {
+            printf("dump [%d]: %s\n", pos, line);
+            fprintf(fd, "%s\n", tokens[1]);
+        }
+        sdsfreesplitres(tokens, count);
         // sdsfree(line);
         
         pos ++;
     }
-    free(result);
+    inotify_lookup_freedump();
     
     return 0;
 }
