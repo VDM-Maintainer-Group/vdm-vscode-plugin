@@ -22,6 +22,7 @@ int onSave(const char *stat_file)
     sds *tokens;
 
     result = inotify_lookup_dump("code");
+    printf("file path: %s\n", stat_file);
 
     if ( (fd=fopen(stat_file, "w"))==NULL )
     {
@@ -32,7 +33,7 @@ int onSave(const char *stat_file)
     {
         line = sdsnew(result[pos]);
         tokens = sdssplitlen(line, sdslen(line), ",", 1, &count);
-        if ( (count==2) && !(strstr(tokens[1], ".git")) && !(strstr(tokens[1], ".config")) )
+        if ( (count==2) && !(strstr(tokens[1], ".git")) && !(strstr(tokens[1], ".config")) && !(strstr(tokens[1], ".vscode")) )
         {
             printf("dump [%d]: %s\n", pos, line);
             fprintf(fd, "%s\n", tokens[1]);
