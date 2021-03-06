@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12) #for FindPython feature
 ##
-project(vdm-vscode-plugin VERSION 0.1.0)
+project(vdm-vscode-plugin VERSION 0.2.0)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
