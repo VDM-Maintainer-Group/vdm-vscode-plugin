@@ -6,6 +6,16 @@
 #include <vdm/capability/inotify_lookup.h>
 #include "third-party/sds-master/sds.c"
 
+int check(const char *name)
+{
+    const char *blacklist[3] = {".git", ".config", ".vscode"};
+    for (int i=0; i<3; i++)
+    {
+        if (strstr(blacklist[i], name)) {return 0;}
+    }
+    return 1;
+}
+
 /* Custom Interface */
 int onTrigger(void *args)
 {
@@ -15,36 +25,37 @@ int onTrigger(void *args)
 /* SRC API Interface */
 int onSave(const char *stat_file)
 {
-    int pos = 0, count = 0;
-    char **result;
+    int i, count, length;
+    char result[4096];
     FILE *fd;
-    sds line;
-    sds *tokens;
-
-    result = inotify_lookup_dump("code");
-    printf("file path: %s\n", stat_file);
 
     if ( (fd=fopen(stat_file, "w"))==NULL )
     {
         return -1;
     }
 
-    while (pos<MAX_DUMP_LEN && result[pos])
+    length = inotify_lookup_fetch("code");
+
+    for (i = 0; i < length; i++)
     {
-        line = sdsnew(result[pos]);
+        sds line;
+        sds *tokens;
+
+        inotify_lookup_get(i, result);
+        // printf("dump [%d]: %s\n", i, result);
+        line = sdsnew(result);
         tokens = sdssplitlen(line, sdslen(line), ",", 1, &count);
-        if ( (count==2) && !(strstr(tokens[1], ".git")) && !(strstr(tokens[1], ".config")) && !(strstr(tokens[1], ".vscode")) )
+        if ( count==2 && check(tokens[1]) )
         {
-            printf("dump [%d]: %s\n", pos, line);
-            fprintf(fd, "%s\n", tokens[1]);
+            // fprintf(fd, "%s\n", tokens[1]);
+            printf("dump [%d]: %s\n", i, line);
         }
         sdsfreesplitres(tokens, count);
         // sdsfree(line);
-        
-        pos ++;
     }
-    inotify_lookup_freedump();
+    inotify_lookup_free();
     
+    fclose(fd);
     return 0;
 }
 
