@@ -17,3 +17,6 @@ target_link_libraries(vscode-plugin PUBLIC ${VDMInotifyLookup_LIBRARY})
 add_executable(vscode-plugin-bin vscode_plugin.c)
 target_link_libraries(vscode-plugin-bin PUBLIC ${VDMInotifyLookup_LIBRARY})
 # INSTALL(TARGETS vscode-plugin-bin DESTINATION bin)
+
+add_executable(test test.c)
+target_link_libraries(test ${CMAKE_DL_LIBS})

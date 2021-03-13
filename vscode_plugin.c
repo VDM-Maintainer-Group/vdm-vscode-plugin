@@ -6,6 +6,8 @@
 #include <vdm/capability/inotify_lookup.h>
 #include "third-party/sds-master/sds.c"
 
+#define EXPORT __attribute__((visibility("default")))
+
 int check(const char *name)
 {
     const char *blacklist[3] = {".git", ".config", ".vscode"};
@@ -17,13 +19,13 @@ int check(const char *name)
 }
 
 /* Custom Interface */
-int onTrigger(void *args)
+EXPORT int onTrigger(void *args)
 {
     return 0;
 }
 
 /* SRC API Interface */
-int onSave(const char *stat_file)
+EXPORT int onSave(const char *stat_file)
 {
     int i, count, length;
     char result[4096];
@@ -47,7 +49,7 @@ int onSave(const char *stat_file)
         tokens = sdssplitlen(line, sdslen(line), ",", 1, &count);
         if ( count==2 && check(tokens[1]) )
         {
-            // fprintf(fd, "%s\n", tokens[1]);
+            fprintf(fd, "%s\n", tokens[1]);
             printf("dump [%d]: %s\n", i, line);
         }
         sdsfreesplitres(tokens, count);
@@ -59,7 +61,7 @@ int onSave(const char *stat_file)
     return 0;
 }
 
-int onResume(const char *stat_file)
+EXPORT int onResume(const char *stat_file)
 {
     FILE *fd;
     char buf[1024];
@@ -79,21 +81,21 @@ int onResume(const char *stat_file)
     return 0;
 }
 
-int onClose()
+EXPORT int onClose()
 {
     system("killall code");
     return 0;
 }
 
 /* Common Startup */
-int onStart()
+EXPORT int onStart()
 {
     int ret;
     ret = inotify_lookup_register("code");
     return ret;
 }
 
-int onStop()
+EXPORT int onStop()
 {
     int ret;
     ret = inotify_lookup_unregister("code");
