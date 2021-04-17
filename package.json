@@ -8,7 +8,7 @@
   "author": "Mark Hong",
   "license": "GPL-3.0",
 
-  "main": "libvscode-plugin.so",
+  "main": "vscode_plugin.py",
   "capability": [
     "inotify-lookup"
   ],

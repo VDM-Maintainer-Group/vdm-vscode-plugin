@@ -1,6 +1,6 @@
 # VDM VScode Plugin
 
-VDM Plugin for Visual Studio Code.
+VDM Plugin for Visual Studio Code (Python version).
 
 
 
