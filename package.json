@@ -13,6 +13,7 @@
     "inotify-lookup"
   ],
   "scripts": {
+    "pre-install": "mkdir release; cp *.py release",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
 

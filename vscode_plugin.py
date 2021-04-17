@@ -23,7 +23,7 @@ class VscodePlugin(SRC_API):
         # gathering record from raw_result
         _record = dict()
         for item in raw_result:
-            pid, path = raw_result.split(',', maxsplit=1)
+            pid, path = item.split(',', maxsplit=1)
             if path.startswith(HOME_FIX):
                 path = '/home' + path
             if validate(path):
