@@ -9,13 +9,14 @@ validate = lambda x: ( True not in [_ in x for _ in BLACKLIST] )
 
 class VscodePlugin(SRC_API):
     def fix_path(self, _fake:str) -> str:
-        mount_points = [ x.mountpoint for x in psutil.disk_partitions() ]
+        mount_points = filter( lambda x:x.fstype=='ext4', psutil.disk_partitions() )
+        mount_points = [x.mountpoint for x in mount_points]
         for _root in mount_points:
-            _tmp = Path(_root) / _fake
+            _tmp = Path(_root+_fake)
             if _tmp.exists():
-                return _tmp
+                return _tmp.as_posix()
             pass
-        return _fake
+        return ''
 
     def onStart(self):
         il.register('code')
@@ -33,7 +34,7 @@ class VscodePlugin(SRC_API):
         for item in raw_result:
             pid, path = item.split(',', maxsplit=1)
             path = self.fix_path(path)
-            if validate(path):
+            if path and validate(path):
                 if pid not in _record.keys():
                     _record[pid] = [path]
                 else:
