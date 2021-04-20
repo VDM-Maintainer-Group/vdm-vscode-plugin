@@ -1,14 +1,22 @@
 #!/usr/bin/env python3
-import os
+import os, psutil
 from pathlib import Path
 from pyvdm.interface import SRC_API
 import inotify_lookup as il
 
-HOME_FIX  = '/'+Path.home().name
 BLACKLIST = ['.git', '.config', '.vscode']
 validate = lambda x: ( True not in [_ in x for _ in BLACKLIST] )
 
 class VscodePlugin(SRC_API):
+    def fix_path(self, _fake:str) -> str:
+        mount_points = [ x.mountpoint for x in psutil.disk_partitions() ]
+        for _root in mount_points:
+            _tmp = Path(_root) / _fake
+            if _tmp.exists():
+                return _tmp
+            pass
+        return _fake
+
     def onStart(self):
         il.register('code')
         return 0
@@ -24,8 +32,7 @@ class VscodePlugin(SRC_API):
         _record = dict()
         for item in raw_result:
             pid, path = item.split(',', maxsplit=1)
-            if path.startswith(HOME_FIX):
-                path = '/home' + path
+            path = self.fix_path(path)
             if validate(path):
                 if pid not in _record.keys():
                     _record[pid] = [path]
