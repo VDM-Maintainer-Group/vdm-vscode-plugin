@@ -8,7 +8,7 @@ BLACKLIST = ['.git', '/.config/', '/.local/', '/.vscode']
 validate = lambda x: ( True not in [_ in x for _ in BLACKLIST] )
 
 class VscodePlugin(SRC_API):
-    def fix_path(self, _fake:str) -> str:
+    def fix_path(_fake:str) -> str:
         mount_points = filter( lambda x:x.fstype=='ext4', psutil.disk_partitions() )
         mount_points = [x.mountpoint for x in mount_points]
         for _root in mount_points:
@@ -21,7 +21,7 @@ class VscodePlugin(SRC_API):
             pass
         return ''
 
-    def _gather_record(self, raw_result):
+    def _gather_record(raw_result):
         record = dict()
         for item in raw_result:
             pid, path = item.split(',', maxsplit=1)
@@ -34,17 +34,17 @@ class VscodePlugin(SRC_API):
             pass
         return record
 
-    def _dump_record(self, fh, record):
+    def _dump_record(fh, record):
         for item in record.values():
             if len(item)==1:
                 _path = item[0]
-                _path = self.fix_path(_path)
+                _path = VscodePlugin.fix_path(_path)
                 if _path: fh.write(_path+'\n') #fh.write( 'file %s'%_path )
             else:
                 try:
                     _path = os.path.commonpath(item)
                     if _path=='/usr': raise Exception() #dirty hack
-                    _path = self.fix_path(_path)
+                    _path = VscodePlugin.fix_path(_path)
                 except:
                     _path = ''
                 if _path: fh.write(_path+'\n') #hf.write( 'workspace %s'%_path )
@@ -52,33 +52,33 @@ class VscodePlugin(SRC_API):
             pass
         pass
 
-    def onStart(self):
+    def onStart():
         il.register('code')
         return 0
 
-    def onStop(self):
+    def onStop():
         il.unregister('code')
         return 0
 
-    def onSave(self, stat_file):
+    def onSave(stat_file):
         # dump raw_result via il
         raw_result = il.dump('code')
         # gathering record from raw_result
-        record = self._gather_record(raw_result)
+        record = VscodePlugin._gather_record(raw_result)
         # write to file
         with open(stat_file, 'w') as f:
-            self._dump_record(f, record)
+            VscodePlugin._dump_record(f, record)
             pass
         return 0
 
-    def onResume(self, stat_file):
+    def onResume(stat_file):
         with open(stat_file, 'r') as f:
             items = f.readlines()
             for piece in items:
                 os.system( 'code --new-window %s'%piece )
         return 0
 
-    def onClose(self):
+    def onClose():
         os.system('killall code')
         return 0
     pass
