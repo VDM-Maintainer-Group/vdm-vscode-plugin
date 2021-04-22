@@ -12,7 +12,7 @@ class VscodePlugin(SRC_API):
         mount_points = filter( lambda x:x.fstype=='ext4', psutil.disk_partitions() )
         mount_points = [x.mountpoint for x in mount_points]
         for _root in mount_points:
-            _tmp = Path(_root+_fake)
+            _tmp = Path(_root+_fake).resolve()
             try:
                 if _tmp.exists():
                     return _tmp.as_posix()
@@ -39,14 +39,15 @@ class VscodePlugin(SRC_API):
             if len(item)==1:
                 _path = item[0]
                 _path = self.fix_path(_path)
-                if _path: fh.write(_path) #fh.write( 'file %s'%_path )
+                if _path: fh.write(_path+'\n') #fh.write( 'file %s'%_path )
             else:
                 try:
                     _path = os.path.commonpath(item)
+                    if _path=='/usr': raise Exception() #dirty hack
                     _path = self.fix_path(_path)
                 except:
                     _path = ''
-                if _path: fh.write(_path) #hf.write( 'workspace %s'%_path )
+                if _path: fh.write(_path+'\n') #hf.write( 'workspace %s'%_path )
                 pass
             pass
         pass
