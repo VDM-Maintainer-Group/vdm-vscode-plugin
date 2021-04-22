@@ -8,7 +8,7 @@ BLACKLIST = ['.git', '/.config/', '/.local/', '/.vscode']
 validate = lambda x: ( True not in [_ in x for _ in BLACKLIST] )
 
 class VscodePlugin(SRC_API):
-    def fix_path(_fake:str) -> str:
+    def fix_path(self, _fake:str) -> str:
         mount_points = filter( lambda x:x.fstype=='ext4', psutil.disk_partitions() )
         mount_points = [x.mountpoint for x in mount_points]
         for _root in mount_points:
@@ -20,6 +20,36 @@ class VscodePlugin(SRC_API):
                 pass
             pass
         return ''
+
+    def _gather_record(self, raw_result):
+        record = dict()
+        for item in raw_result:
+            pid, path = item.split(',', maxsplit=1)
+            path = path.rstrip('\u0000')
+            if path and validate(path):
+                if pid not in record.keys():
+                    record[pid] = [path]
+                else:
+                    record[pid].append(path)
+            pass
+        return record
+
+    def _dump_record(self, fh, record):
+        for item in record.values():
+            if len(item)==1:
+                _path = item[0]
+                _path = self.fix_path(_path)
+                if _path: fh.write(_path) #fh.write( 'file %s'%_path )
+            else:
+                try:
+                    _path = os.path.commonpath(item)
+                    _path = self.fix_path(_path)
+                except:
+                    _path = ''
+                if _path: fh.write(_path) #hf.write( 'workspace %s'%_path )
+                pass
+            pass
+        pass
 
     def onStart(self):
         il.register('code')
@@ -33,31 +63,10 @@ class VscodePlugin(SRC_API):
         # dump raw_result via il
         raw_result = il.dump('code')
         # gathering record from raw_result
-        _record = dict()
-        for item in raw_result:
-            pid, path = item.split(',', maxsplit=1)
-            path = path.rstrip('\u0000')
-            if path and validate(path):
-                if pid not in _record.keys():
-                    _record[pid] = [path]
-                else:
-                    _record[pid].append(path)
-            pass
-        # write file
+        record = self._gather_record(raw_result)
+        # write to file
         with open(stat_file, 'w') as f:
-            for item in _record.values():
-                if len(item)==1:
-                    _path = item[0]
-                    _path = self.fix_path(_path)
-                    if _path: f.write(_path) #f.write( 'file %s'%_path )
-                else:
-                    try:
-                        _path = os.path.commonpath(item)
-                        _path = self.fix_path(_path)
-                    except:
-                        _path = ''
-                    if _path: f.write(_path) #f.write( 'workspace %s'%_path )
-                    pass
+            self._dump_record(f, record)
             pass
         return 0
 
@@ -74,33 +83,15 @@ class VscodePlugin(SRC_API):
     pass
 
 if __name__ == '__main__':
-    import json
-    il.register('code')
+    import sys, json
+    _plugin = VscodePlugin()
+    _plugin.onStart()
+
+    # dump raw_result via il
     raw_result = il.dump('code')
     # gathering record from raw_result
-    _record = dict()
-    for item in raw_result:
-        pid, path = item.split(',', maxsplit=1)
-        path = path.rstrip('\u0000')
-        if path and validate(path):
-            if pid not in _record.keys():
-                _record[pid] = [path]
-            else:
-                _record[pid].append(path)
-        pass
-    print( json.dumps(_record, indent=4) )
-    # write file
-    for item in _record.values():
-        if len(item)==1:
-            _path = item[0]
-            _path = VscodePlugin.fix_path(_path)
-            if _path: print( 'file %s'%_path )
-        else:
-            try:
-                _path = os.path.commonpath(item)
-                _path = VscodePlugin.fix_path(_path)
-            except:
-                _path = ''
-            if _path: print( 'workspace %s'%_path )
-            pass
+    record = _plugin._gather_record(raw_result)
+    print( json.dumps(record, indent=4) )
+    # write to file
+    _plugin._dump_record(sys.stdout, record)
     pass
