@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os, psutil
+import time
 from pathlib import Path
 from pyvdm.interface import SRC_API
 import inotify_lookup as il
@@ -76,6 +77,8 @@ class VscodePlugin(SRC_API):
             items = f.readlines()
             for piece in items:
                 os.system( 'code --new-window %s'%piece )
+            pass
+        time.sleep(1.5)
         return 0
 
     def onClose():
