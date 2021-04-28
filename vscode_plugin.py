@@ -9,6 +9,7 @@ BLACKLIST = ['.git', '/.config/', '/.local/', '/.vscode']
 validate = lambda x: ( True not in [_ in x for _ in BLACKLIST] )
 
 class VscodePlugin(SRC_API):
+    @staticmethod
     def fix_path(_fake:str) -> str:
         mount_points = filter( lambda x:x.fstype=='ext4', psutil.disk_partitions() )
         mount_points = [x.mountpoint for x in mount_points]
@@ -22,6 +23,7 @@ class VscodePlugin(SRC_API):
             pass
         return ''
 
+    @staticmethod
     def _gather_record(raw_result):
         record = dict()
         for item in raw_result:
@@ -35,6 +37,7 @@ class VscodePlugin(SRC_API):
             pass
         return record
 
+    @staticmethod
     def _dump_record(fh, record):
         for item in record.values():
             if len(item)==1:
@@ -53,26 +56,26 @@ class VscodePlugin(SRC_API):
             pass
         pass
 
-    def onStart():
+    def onStart(self):
         il.register('code')
         return 0
 
-    def onStop():
+    def onStop(self):
         il.unregister('code')
         return 0
 
-    def onSave(stat_file):
+    def onSave(self, stat_file):
         # dump raw_result via il
         raw_result = il.dump('code')
         # gathering record from raw_result
-        record = VscodePlugin._gather_record(raw_result)
+        record = self._gather_record(raw_result)
         # write to file
         with open(stat_file, 'w') as f:
-            VscodePlugin._dump_record(f, record)
+            self._dump_record(f, record)
             pass
         return 0
 
-    def onResume(stat_file):
+    def onResume(self, stat_file):
         with open(stat_file, 'r') as f:
             items = f.readlines()
             for piece in items:
@@ -81,7 +84,7 @@ class VscodePlugin(SRC_API):
         time.sleep(1.5)
         return 0
 
-    def onClose():
+    def onClose(self):
         os.system('killall code')
         return 0
     pass
