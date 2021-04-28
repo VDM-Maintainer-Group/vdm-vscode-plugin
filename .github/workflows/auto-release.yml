@@ -18,13 +18,13 @@ jobs:
       - uses: thedoctor0/zip-release@master
         if: steps.version-updated.outputs.has-updated
         with:
-          filename: 'vdm-vscode-plugin-${{ steps.version-updated.outputs.current-package-version }}.zip'
+          filename: 'vdm-vscode-plugin-v${{ steps.version-updated.outputs.current-package-version }}.zip'
       - uses: "marvinpinto/action-automatic-releases@latest"
         if: steps.version-updated.outputs.has-updated
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           automatic_release_tag: "v${{ steps.version-updated.outputs.current-package-version }}"
           prerelease: false
-          title: "Automatic Release by Github Action"
+          title: "v${{ steps.version-updated.outputs.current-package-version }} (Automatic Release)"
           files: |
-            vdm-vscode-plugin-${{ steps.version-updated.outputs.current-package-version }}.zip
+            vdm-vscode-plugin-v${{ steps.version-updated.outputs.current-package-version }}.zip
