@@ -1,0 +1,28 @@
+name: auto-release
+
+on:
+  push:
+    branches: [release]
+
+jobs:
+  run-build-if-needed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - uses: MontyD/package-json-updated-action@1.0.1
+        id: version-updated
+        with:
+          path: package.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: thedoctor0/zip-release@master
+        if: steps.version-updated.outputs.has-updated
+        with:
+          filename: 'vdm-vscode-plugin-${{ steps.version-updated.outputs.current-package-version }}.zip'
+      - uses: ncipollo/release-action@v1
+        if: steps.version-updated.outputs.has-updated
+        with:
+          artifacts: 'vdm-vscode-plugin-${{ steps.version-updated.outputs.current-package-version }}.zip'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          allowUpdates: true
+          name: "Automatic Release by Github Action"
