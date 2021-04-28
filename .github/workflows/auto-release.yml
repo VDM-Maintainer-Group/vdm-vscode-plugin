@@ -19,10 +19,12 @@ jobs:
         if: steps.version-updated.outputs.has-updated
         with:
           filename: 'vdm-vscode-plugin-${{ steps.version-updated.outputs.current-package-version }}.zip'
-      - uses: ncipollo/release-action@v1
+      - uses: "marvinpinto/action-automatic-releases@latest"
         if: steps.version-updated.outputs.has-updated
         with:
-          artifacts: 'vdm-vscode-plugin-${{ steps.version-updated.outputs.current-package-version }}.zip'
-          token: ${{ secrets.GITHUB_TOKEN }}
-          allowUpdates: true
-          name: "Automatic Release by Github Action"
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "v${{ steps.version-updated.outputs.current-package-version }}"
+          prerelease: false
+          title: "Automatic Release by Github Action"
+          files: |
+            vdm-vscode-plugin-${{ steps.version-updated.outputs.current-package-version }}.zip
