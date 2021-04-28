@@ -19,6 +19,7 @@ jobs:
         if: steps.version-updated.outputs.has-updated
         with:
           filename: 'vdm-vscode-plugin-v${{ steps.version-updated.outputs.current-package-version }}.zip'
+          exclusions: '*.git*'
       - uses: "marvinpinto/action-automatic-releases@latest"
         if: steps.version-updated.outputs.has-updated
         with:
