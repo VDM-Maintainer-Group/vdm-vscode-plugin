@@ -4,7 +4,7 @@ import time
 from pathlib import Path
 from pyvdm.interface import CapabilityLibrary, SRC_API
 
-BLACKLIST = ['.git', '/.config/', '/.local/', '/.vscode']
+BLACKLIST = ['.git', '/.config/', '/.local/', '/.vscode', 'CMakeFiles/Progress']
 validate = lambda x: ( True not in [_ in x for _ in BLACKLIST] )
 
 class VscodePlugin(SRC_API):
