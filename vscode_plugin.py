@@ -40,7 +40,7 @@ class VscodePlugin(SRC_API):
         pass
 
     def onStart(self):
-        self.il = CapabilityLibrary.CapabilityHandleLocal('inotify_lookup')
+        self.il = CapabilityLibrary.CapabilityHandleLocal('inotify-lookup')
         self.il.register('code')
         return 0
 
