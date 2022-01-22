@@ -2,27 +2,12 @@
 import os, psutil
 import time
 from pathlib import Path
-from pyvdm.interface import SRC_API
-import inotify_lookup as il
+from pyvdm.interface import CapabilityLibrary, SRC_API
 
-BLACKLIST = ['.git', '/.config/', '/.local/', '/.vscode']
+BLACKLIST = ['.git', '/.config/', '/.local/', '/.vscode', 'CMakeFiles/Progress']
 validate = lambda x: ( True not in [_ in x for _ in BLACKLIST] )
 
 class VscodePlugin(SRC_API):
-    @staticmethod
-    def fix_path(_fake:str) -> str:
-        mount_points = filter( lambda x:x.fstype=='ext4', psutil.disk_partitions() )
-        mount_points = [x.mountpoint for x in mount_points]
-        for _root in mount_points:
-            _tmp = Path(_root+_fake).resolve()
-            try:
-                if _tmp.exists():
-                    return _tmp.as_posix()
-            except:
-                pass
-            pass
-        return ''
-
     @staticmethod
     def _gather_record(raw_result):
         record = dict()
@@ -42,13 +27,11 @@ class VscodePlugin(SRC_API):
         for item in record.values():
             if len(item)==1:
                 _path = item[0]
-                _path = VscodePlugin.fix_path(_path)
                 if _path: fh.write(_path+'\n') #fh.write( 'file %s'%_path )
             else:
                 try:
                     _path = os.path.commonpath(item)
                     if _path=='/usr': raise Exception() #dirty hack
-                    _path = VscodePlugin.fix_path(_path)
                 except:
                     _path = ''
                 if _path: fh.write(_path+'\n') #hf.write( 'workspace %s'%_path )
@@ -57,16 +40,17 @@ class VscodePlugin(SRC_API):
         pass
 
     def onStart(self):
-        il.register('code')
+        self.il = CapabilityLibrary.CapabilityHandleLocal('inotify-lookup')
+        self.il.register('code')
         return 0
 
     def onStop(self):
-        il.unregister('code')
+        self.il.unregister('code')
         return 0
 
     def onSave(self, stat_file):
         # dump raw_result via il
-        raw_result = il.dump('code')
+        raw_result = self.il.dump('code')
         # gathering record from raw_result
         record = self._gather_record(raw_result)
         # write to file
@@ -95,7 +79,7 @@ if __name__ == '__main__':
     _plugin.onStart()
 
     # dump raw_result via il
-    raw_result = il.dump('code')
+    raw_result = _plugin.il.dump('code')
     # gathering record from raw_result
     record = _plugin._gather_record(raw_result)
     print( json.dumps(record, indent=4) )
