@@ -4,8 +4,8 @@ import time
 from pathlib import Path
 from pyvdm.interface import CapabilityLibrary, SRC_API
 
-BLACKLIST = ['.git', '/.config/', '/.local/', '/.vscode', 'CMakeFiles/Progress']
-validate = lambda x: ( True not in [_ in x for _ in BLACKLIST] )
+BLACKLIST = ['/Code/User/settings.json', '/.vscode/settings.json', '/.git/refs/remotes/']
+VALIDATE  = lambda x: ( True not in [_ in x for _ in BLACKLIST] )
 
 class VscodePlugin(SRC_API):
     @staticmethod
@@ -14,28 +14,25 @@ class VscodePlugin(SRC_API):
         for item in raw_result:
             pid, path = item.split(',', maxsplit=1)
             path = path.rstrip('\u0000')
-            if path and validate(path):
-                if pid not in record.keys():
-                    record[pid] = [path]
-                else:
-                    record[pid].append(path)
+            #
+            if pid not in record.keys():
+                record[pid] = [path]
+            else:
+                record[pid].append(path)
             pass
         return record
 
     @staticmethod
     def _dump_record(fh, record):
-        for item in record.values():
-            if len(item)==1:
-                _path = item[0]
-                if _path: fh.write(_path+'\n') #fh.write( 'file %s'%_path )
-            else:
-                try:
-                    _path = os.path.commonpath(item)
-                    if _path=='/usr': raise Exception() #dirty hack
-                except:
-                    _path = ''
-                if _path: fh.write(_path+'\n') #hf.write( 'workspace %s'%_path )
-                pass
+        for pid, items in record.items():
+            pid = int(pid)
+            if not psutil.pid_exists(pid):
+                _path = os.path.commonpath(items)
+                if _path: fh.write(_path+'\n') #fh.write( 'workspace %s'%_path )
+            elif '--type=fileWatcher' in psutil.Process(pid).cmdline():
+                for _path in items:
+                    if VALIDATE(_path) and Path(_path).is_file():
+                        fh.write(_path+'\n') #fh.write( 'file %s'%_path )
             pass
         pass
 
@@ -82,7 +79,7 @@ if __name__ == '__main__':
     raw_result = _plugin.il.dump('code')
     # gathering record from raw_result
     record = _plugin._gather_record(raw_result)
-    print( json.dumps(record, indent=4) )
+    # print( json.dumps(record, indent=4) )
     # write to file
     _plugin._dump_record(sys.stdout, record)
     pass
