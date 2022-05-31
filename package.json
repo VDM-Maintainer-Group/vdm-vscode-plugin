@@ -10,7 +10,7 @@
 
   "main": "vscode_plugin.py",
   "capability": [
-    "inotify-lookup"
+    "inotify-lookup", "x11-manager"
   ],
   "scripts": {
     "pre-install": "mkdir release; cp *.py release",
