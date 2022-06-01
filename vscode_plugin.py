@@ -124,7 +124,7 @@ class VscodePlugin(SRC_API):
                 return -1
         ## open windows and wait for title
         for item in records:
-            os.system( 'code --new-window %s'%item['path'] )
+            os.system( 'code --new-window "%s"'%item['path'] )
         pass
         time.sleep( len(records) * 0.60 )
         ## rearrange windows by title
