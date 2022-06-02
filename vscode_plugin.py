@@ -5,6 +5,7 @@ from pathlib import Path
 from pyvdm.interface import CapabilityLibrary, SRC_API
 
 DBG = 0
+SLOT = 0.80
 
 BLACKLIST = ['/Code/User/settings.json', '/.vscode/settings.json', '/.git/refs/remotes/',
             '/usr/lib/', '/usr/local/lib/',
@@ -16,7 +17,7 @@ WINDOW_TITLE = '%s - Visual Studio Code'
 
 class VscodePlugin(SRC_API):
     @staticmethod
-    def _gather_records(raw_result):
+    def _gather_records(raw_result):    
         records = list()
 
         ## collect and filter the raw data
@@ -32,7 +33,7 @@ class VscodePlugin(SRC_API):
                 else:
                     _processes[pid].append(path)
             pass
-        # if DBG: print( json.dumps(_processes[15969], indent=4) )
+        if DBG: print( json.dumps(_processes, indent=4) )
 
         ## gather records
         for pid, items in _processes.items():
@@ -49,8 +50,8 @@ class VscodePlugin(SRC_API):
 
         return records
     
-    def _associate_with_window(self, records):
-        results = dict()
+    def _associate_with_window(self, records) -> list:
+        results = list()
 
         windows = self.xm.get_windows_by_name('Visual Studio Code')
         windows.sort(key=lambda x:x['xid'])
@@ -60,32 +61,42 @@ class VscodePlugin(SRC_API):
             _title = WINDOW_TITLE%_name
             for w in windows:
                 if _title in w['name']:
-                    results[_name] = {
+                    results.append({
+                        'name': _name,
                         'path': _path,
                         'window': {
                             'desktop':w['desktop'],
                             'states':w['states'],
                             'xyhw':w['xyhw']
                         }
-                    }
+                    }) 
                     continue
             pass
 
         return results
 
-    def _rearrange_window(self, records):
-        windows = self.xm.get_windows_by_name('Visual Studio Code')
-        windows.sort(key=lambda x:x['xid'])
+    def _rearrange_window(self, records: list):
+        _time = time.time()
+        _limit = len(records) * SLOT
+        while len(records)!=0 and time.time()-_time<_limit:
+            time.sleep(SLOT)
 
-        for name,status in records.items():
-            _title = WINDOW_TITLE%name
-            for w in windows:
-                if _title in w['name']:
-                    s = status['window']
-                    self.xm.set_window_by_xid( w['xid'],
-                        s['desktop'], s['states'], s['xyhw'] )
-                    continue
+            windows = self.xm.get_windows_by_name('Visual Studio Code')
+            windows.sort(key=lambda x:x['xid'])
+
+            def _window_set(stat)->bool:
+                _title = WINDOW_TITLE%stat['name']
+                for idx,w in enumerate(windows):
+                    if _title in w['name']:
+                        s = stat['window']
+                        self.xm.set_window_by_xid( w['xid'], s['desktop'], s['states'], s['xyhw'] )
+                        windows.pop(idx)
+                        return True
+                return False
+            
+            records = [ stat for stat in records if not _window_set(stat) ]
             pass
+        if DBG: print( 'Time elapsed: %.3f.'%(time.time()-_time) )
         pass
 
     def onStart(self):
@@ -126,13 +137,13 @@ class VscodePlugin(SRC_API):
         for item in records:
             os.system( 'code --new-window "%s"'%item['path'] )
         pass
-        time.sleep( len(records) * 0.60 )
         ## rearrange windows by title
         self._rearrange_window(records)
-        time.sleep(0.5)
+        time.sleep(SLOT)
         return 0
 
     def onClose(self):
+        ## force close all
         os.system('killall code')
         return 0
     pass
