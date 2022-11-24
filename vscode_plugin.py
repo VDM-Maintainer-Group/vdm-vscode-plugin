@@ -7,6 +7,12 @@ from pyvdm.interface import CapabilityLibrary, SRC_API
 DBG = 0
 SLOT = 0.80
 
+from pyvdm.core.ApplicationManager import ApplicationManager as AM
+TARGET = 'code'
+APP = AM.get_application(TARGET)
+PROG_EXEC = APP['exec'].split()[0]
+PROG_NAME = 'code'
+
 BLACKLIST = ['/Code/User/settings.json', '/.vscode/settings.json', '/.git/refs/remotes/',
             '/usr/lib/', '/usr/local/lib/',
             '/lib/python',
@@ -102,16 +108,16 @@ class VscodePlugin(SRC_API):
     def onStart(self):
         self.xm = CapabilityLibrary.CapabilityHandleLocal('x11-manager')
         self.il = CapabilityLibrary.CapabilityHandleLocal('inotify-lookup')
-        self.il.register('code')
+        self.il.register( PROG_NAME )
         return 0
 
     def onStop(self):
-        self.il.unregister('code')
+        self.il.unregister( PROG_NAME )
         return 0
 
     def onSave(self, stat_file):
         ## dump raw_result via il
-        raw_results = self.il.dump('code')
+        raw_results = self.il.dump( PROG_NAME )
         ## gathering record from raw_results
         records = self._gather_records(raw_results)
         ## associate with X window
@@ -122,7 +128,7 @@ class VscodePlugin(SRC_API):
             pass
         return 0
 
-    def onResume(self, stat_file):
+    def onResume(self, stat_file, new):
         ## load stat file with failure check
         with open(stat_file, 'r') as f:
             _file = f.read().strip()
@@ -144,7 +150,7 @@ class VscodePlugin(SRC_API):
 
     def onClose(self):
         ## force close all
-        os.system('killall code')
+        os.system(f'killall {PROG_NAME}')
         return 0
     pass
 
@@ -152,7 +158,7 @@ if __name__ == '__main__':
     _plugin = VscodePlugin()
     _plugin.onStart()
 
-    raw_results = _plugin.il.dump('code')
+    raw_results = _plugin.il.dump( PROG_NAME )
     ## gathering record from raw_results
     records = _plugin._gather_records(raw_results)
     ## associate with X window
