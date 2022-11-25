@@ -1,6 +1,7 @@
 {
   "name": "vdm-vscode-plugin",
-  "version": "0.5.0",
+  "version": "0.7.0",
+  "target": "code",
   "description": "vdm plugin for vscode.",
   "keywords": [
     "vscode"
